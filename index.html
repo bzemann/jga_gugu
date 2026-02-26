@@ -3,12 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Glücksrad</title>
+  <title>Glücksrolle</title>
   <style>
     :root{
       --bg: #0b0f17;
       --card: rgba(255,255,255,0.06);
-      --card2: rgba(255,255,255,0.09);
       --text: rgba(255,255,255,0.92);
       --muted: rgba(255,255,255,0.65);
       --border: rgba(255,255,255,0.12);
@@ -70,62 +69,164 @@
       padding: 18px;
     }
 
-    .wheel-area{
+    .reel-area{
       display:grid;
       place-items:center;
       padding: 8px 8px 2px;
     }
 
-    .wheel-wrap{
+    /* ===== Reel UI ===== */
+    .reel-wrap{
+      width: min(520px, 92vw);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background:
+        radial-gradient(120% 80% at 50% 20%, rgba(255,255,255,0.10), transparent 60%),
+        rgba(255,255,255,0.04);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.40);
+      overflow: hidden;
       position: relative;
-      width: min(420px, 92vw);
-      aspect-ratio: 1 / 1;
+    }
+
+    .reel-inner{
       display:grid;
-      place-items:center;
+      grid-template-columns: 56px 1fr 56px;
+      align-items: stretch;
+      min-height: 340px;
     }
 
-    canvas{
-      width: 100%;
-      height: 100%;
-      display:block;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.02);
+    /* Side “lights” like casino vibe (subtle) */
+    .side{
+      position: relative;
+      background: rgba(0,0,0,0.10);
+      border-right: 1px solid rgba(255,255,255,0.08);
     }
-
-    /* Pointer (oben) */
-    .pointer{
+    .side.right{
+      border-right: none;
+      border-left: 1px solid rgba(255,255,255,0.08);
+    }
+    .bulbs{
       position:absolute;
-      top: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-top: 22px solid rgba(255,255,255,0.92);
-      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+      inset: 10px 0;
+      display:flex;
+      flex-direction: column;
+      align-items:center;
+      justify-content: space-between;
+      padding: 10px 0;
+      opacity: 0.9;
+    }
+    .bulb{
+      width: 14px; height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+    }
+
+    /* The reel viewport */
+    .viewport{
+      position: relative;
+      overflow: hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.18)),
+        radial-gradient(100% 120% at 50% 40%, rgba(255,255,255,0.08), transparent 60%);
+    }
+
+    /* Highlight window in the middle */
+    .window{
+      position:absolute;
+      left: 14px;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 84px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25), 0 18px 40px rgba(0,0,0,0.25);
+      pointer-events:none;
       z-index: 3;
     }
 
-    /* Center cap */
-    .cap{
+    /* Middle pointer “brackets” */
+    .bracket{
       position:absolute;
-      width: 18%;
-      aspect-ratio: 1 / 1;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 18px;
       border-radius: 999px;
-      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.12) 72%, rgba(0,0,0,0.25));
-      border: 1px solid rgba(255,255,255,0.25);
-      z-index: 2;
-      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+      z-index: 4;
       pointer-events:none;
     }
+    .bracket.left{ left: 10px; }
+    .bracket.right{ right: 10px; }
 
+    /* Fade top/bottom */
+    .fade{
+      position:absolute;
+      left: 0; right: 0;
+      height: 34%;
+      z-index: 2;
+      pointer-events:none;
+    }
+    .fade.top{
+      top: 0;
+      background: linear-gradient(180deg, rgba(11,15,23,0.85), transparent);
+    }
+    .fade.bottom{
+      bottom: 0;
+      background: linear-gradient(0deg, rgba(11,15,23,0.85), transparent);
+    }
+
+    /* Track */
+    .track{
+      position:absolute;
+      left: 0; right: 0;
+      will-change: transform;
+      padding: 24px 16px; /* gives breathing room */
+      z-index: 1;
+    }
+
+    .item{
+      height: 84px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding: 0 14px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-size: clamp(18px, 2.6vw, 28px);
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+      user-select:none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .divider{
+      height: 2px;
+      background: rgba(255,255,255,0.10);
+      margin: 0 22px;
+      border-radius: 999px;
+    }
+
+    /* ===== Result / buttons ===== */
     .result{
-      margin-top: 6px;
+      margin-top: 12px;
       padding: 14px;
       border-radius: 14px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.06);
+      width: min(620px, 92vw);
     }
     .result .label{
       font-size: 12px;
@@ -163,56 +264,7 @@
     }
     button:hover{ background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.24); }
     button:active{ transform: translateY(1px); }
-    button:disabled{
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .secondary{
-      background: rgba(255,255,255,0.06);
-    }
-
-    details{
-      border-top: 1px solid var(--border);
-      padding: 14px 18px 18px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 140%);
-    }
-    summary{
-      cursor:pointer;
-      color: var(--muted);
-      font-size: 14px;
-      list-style:none;
-    }
-    summary::-webkit-details-marker{ display:none; }
-    summary::before{
-      content:"▸";
-      display:inline-block;
-      margin-right: 8px;
-      transform: translateY(-1px);
-      transition: transform 0.15s ease;
-    }
-    details[open] summary::before{ transform: rotate(90deg) translateX(1px); }
-
-    textarea{
-      width:100%;
-      margin-top: 10px;
-      border-radius: 12px;
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.22);
-      color: var(--text);
-      min-height: 140px;
-      font-size: 14px;
-      line-height: 1.4;
-      resize: vertical;
-    }
-
-    .hint{
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-    }
+    button:disabled{ opacity: 0.55; cursor: not-allowed; }
 
     @media (min-width: 920px){
       .wrap{ grid-template-columns: 1fr; }
@@ -228,26 +280,45 @@
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>🎡 Glücksrad</h1>
-      <p>Drehen, warten bis es stoppt – der getroffene Satz erscheint darunter.</p>
+      <h1>🎰 Glücksrolle</h1>
+      <p>Drücken, drehen, stoppen – der getroffene Satz erscheint unten.</p>
     </div>
 
     <div class="card">
       <div class="main">
-        <div class="wheel-area">
-          <div class="wheel-wrap" aria-label="Glücksrad">
-            <div class="pointer" aria-hidden="true"></div>
-            <canvas id="wheel" width="900" height="900"></canvas>
-            <div class="cap" aria-hidden="true"></div>
+        <div class="reel-area">
+          <div class="reel-wrap" aria-label="Glücksrolle">
+            <div class="reel-inner">
+              <div class="side">
+                <div class="bulbs" aria-hidden="true">
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                </div>
+              </div>
+
+              <div class="viewport" id="viewport">
+                <div class="fade top"></div>
+                <div class="fade bottom"></div>
+                <div class="window"></div>
+                <div class="bracket left" aria-hidden="true"></div>
+                <div class="bracket right" aria-hidden="true"></div>
+
+                <div class="track" id="track"></div>
+              </div>
+
+              <div class="side right">
+                <div class="bulbs" aria-hidden="true">
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="result" style="width:min(620px, 92vw); margin-top: 14px;">
+          <div class="result">
             <div class="label">Ergebnis</div>
             <div class="value" id="resultText">—</div>
 
             <div class="controls">
-              <button id="spinBtn">Rad drehen</button>
-              <button id="resetBtn" class="secondary" title="Setzt nur die Anzeige zurück">Ergebnis zurücksetzen</button>
+              <button id="spinBtn">Rolle drehen</button>
             </div>
           </div>
         </div>
@@ -258,196 +329,98 @@
             <div class="value" id="statusText" style="font-size:14px; color: var(--muted);">Bereit.</div>
           </div>
 
-          <div class="hint" style="margin-top:12px;">
-            Optional: Liste unten anpassen (eine Zeile = ein Feld). Wird lokal im Browser gespeichert.
+          <div style="margin-top:12px; color: var(--muted); font-size: 13px; line-height: 1.4;">
+            Wahrscheinlichkeiten kannst du im Code oben in <code>ITEMS</code> über <code>weight</code> ändern.
+            Beispiel: <code>weight: 5</code> = fünfmal so häufig wie <code>weight: 1</code>.
           </div>
         </div>
       </div>
-
-      <details>
-        <summary>Liste bearbeiten</summary>
-        <textarea id="itemsArea" spellcheck="false"></textarea>
-        <div class="hint">
-          Tipp: Mindestens 2 Einträge sind sinnvoll. Bei sehr langen Sätzen wird auf dem Rad gekürzt,
-          aber das volle Ergebnis erscheint darunter.
-        </div>
-      </details>
     </div>
   </div>
 
 <script>
 (() => {
-  // -----------------------------
-  // Data
-  // -----------------------------
-  const DEFAULT_ITEMS = [
-    "Hallo Welt",
-    "Heute ist ein guter Tag",
-    "Kaffee oder Tee?",
-    "Mach 10 Liegestütze",
-    "Ruf eine Person an, die du magst",
-    "Kurzer Spaziergang: 5 Minuten",
-    "Schreib 3 Dinge auf, die gut laufen",
+  // =========================================================
+  // 1) HIER ÄNDERST DU SÄTZE + WAHRSCHEINLICHKEITEN
+  //    weight = relative Häufigkeit (z.B. 5 ist 5x so oft wie 1)
+  // =========================================================
+  const ITEMS = [
+    { text: "Hallo Welt", weight: 1 },
+    { text: "Heute ist ein guter Tag", weight: 2 },
+    { text: "Kaffee oder Tee?", weight: 1 },
+    { text: "Mach 10 Liegestütze", weight: 1 },
+    { text: "Ruf eine Person an, die du magst", weight: 1 },
+    { text: "Kurzer Spaziergang: 5 Minuten", weight: 1 },
+    { text: "Schreib 3 Dinge auf, die gut laufen", weight: 1 },
   ];
 
-  const LS_ITEMS = "wheel_items_v2";
+  // Spin feel (optional)
+  const MIN_TURNS = 10;          // wie viele “Umdrehungen” mindestens
+  const MAX_TURNS = 16;          // maximal
+  const DURATION_MIN_MS = 2400;  // schneller
+  const DURATION_MAX_MS = 3600;  // langsamer
 
-  const canvas = document.getElementById("wheel");
-  const ctx = canvas.getContext("2d");
-
+  // =========================================================
+  // DOM
+  // =========================================================
+  const track = document.getElementById("track");
+  const viewport = document.getElementById("viewport");
   const resultText = document.getElementById("resultText");
   const statusText = document.getElementById("statusText");
-
   const spinBtn = document.getElementById("spinBtn");
-  const resetBtn = document.getElementById("resetBtn");
 
-  const itemsArea = document.getElementById("itemsArea");
-
-  let items = loadItems();
-  itemsArea.value = items.join("\n");
-
-  // -----------------------------
-  // Wheel rendering
-  // -----------------------------
-  // Angle convention:
-  //  - wheel angle "angle" rotates the wheel clockwise
-  //  - pointer is at the top (12 o'clock)
-  let angle = 0;           // current wheel angle in radians
   let isSpinning = false;
 
-  function clampItems(raw) {
-    const arr = raw
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
+  // Each rendered row uses this height (must match CSS .item height)
+  const ITEM_HEIGHT = 84;
 
-    return arr.length ? arr : DEFAULT_ITEMS.slice();
+  // Build a long track so it can “spin” a lot without looping artifacts
+  const base = ITEMS.map(x => x.text);
+  if (base.length < 2) {
+    resultText.textContent = "⚠️ Bitte mindestens 2 Items in ITEMS definieren.";
+    spinBtn.disabled = true;
+    return;
   }
 
-  function loadItems(){
-    const saved = localStorage.getItem(LS_ITEMS);
-    if (!saved) return DEFAULT_ITEMS.slice();
-    return clampItems(saved);
+  // We repeat the base list many times for a long scroll
+  const REPEATS = 40;
+  const sequence = [];
+  for (let r = 0; r < REPEATS; r++) {
+    for (const it of ITEMS) sequence.push(it.text);
   }
 
-  function saveItems(arr){
-    localStorage.setItem(LS_ITEMS, arr.join("\n"));
-  }
+  // Render sequence
+  function renderTrack() {
+    track.innerHTML = "";
+    for (let i = 0; i < sequence.length; i++) {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = sequence[i];
+      track.appendChild(div);
 
-  // Drawing helpers
-  function drawWheel(){
-    const w = canvas.width, h = canvas.height;
-    const cx = w/2, cy = h/2;
-    const r = Math.min(w,h)*0.47;
-
-    ctx.clearRect(0,0,w,h);
-
-    // subtle outer ring shadow
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    const n = items.length;
-    const step = (Math.PI * 2) / n;
-
-    // Wheel base circle
-    ctx.beginPath();
-    ctx.arc(0,0,r,0,Math.PI*2);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    ctx.fill();
-
-    // Segments
-    for (let i=0;i<n;i++){
-      const a0 = i*step;
-      const a1 = a0 + step;
-
-      // segment fill (alternating)
-      ctx.beginPath();
-      ctx.moveTo(0,0);
-      ctx.arc(0,0,r,a0,a1);
-      ctx.closePath();
-
-      const alt = (i % 2 === 0);
-      ctx.fillStyle = alt ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.06)";
-      ctx.fill();
-
-      // segment border
-      ctx.strokeStyle = "rgba(255,255,255,0.16)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      <!-- // text -->
-      <!-- const label = items[i]; -->
-      <!-- ctx.save(); -->
-      <!-- // place text at middle of segment -->
-      <!-- const mid = a0 + step/2; -->
-      <!-- ctx.rotate(mid); -->
-
-      <!-- // move outwards and draw rotated text -->
-      <!-- ctx.translate(r*0.62, 0); -->
-      <!-- ctx.rotate(Math.PI/2); -->
-
-      <!-- ctx.fillStyle = "rgba(255,255,255,0.92)"; -->
-      <!-- ctx.font = "700 30px system-ui, -apple-system, Segoe UI, Roboto, Arial"; -->
-      <!-- ctx.textAlign = "center"; -->
-      <!-- ctx.textBaseline = "middle"; -->
-
-      <!-- // truncate on-wheel to keep it readable -->
-      <!-- const short = truncateToFit(label, 18); -->
-      <!-- ctx.fillText(short, 0, 0); -->
-
-      <!-- ctx.restore(); -->
+      // subtle divider between rows (optional)
+      const hr = document.createElement("div");
+      hr.className = "divider";
+      track.appendChild(hr);
     }
-
-    // inner ring
-    ctx.beginPath();
-    ctx.arc(0,0,r*0.18,0,Math.PI*2);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(0,0,0,0.20)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.restore();
-
-    // outer stroke (not rotated)
-    ctx.beginPath();
-    ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.closePath();
-    ctx.strokeStyle = "rgba(255,255,255,0.22)";
-    ctx.lineWidth = 6;
-    ctx.stroke();
   }
 
-  function truncateToFit(s, maxChars){
-    if (s.length <= maxChars) return s;
-    return s.slice(0, Math.max(0, maxChars-1)) + "…";
+  // We added dividers, so effective step height is item + divider
+  // divider height is 2px + margins (0), but we used margins; keep it consistent:
+  // In CSS .divider height = 2, margin left/right only.
+  // So each step = ITEM_HEIGHT + 2
+  const STEP = ITEM_HEIGHT + 2;
+
+  renderTrack();
+
+  // Center alignment:
+  // We want the target item to end exactly in the middle window.
+  function centerOffsetPx() {
+    const h = viewport.clientHeight;
+    return Math.floor(h / 2 - ITEM_HEIGHT / 2);
   }
 
-  function setStatus(msg){
-    statusText.textContent = msg;
-  }
-
-  // -----------------------------
-  // Picking logic: which segment under pointer?
-  // Pointer is at top: angle -pi/2 in standard unit circle.
-  // Because we rotate the wheel by "angle", the segment at pointer corresponds to:
-  // index = floor( normalize( (pointerAngle - angle) ) / step )
-  // with pointerAngle = -pi/2
-  function getSelectedIndex(){
-    const n = items.length;
-    const step = (Math.PI*2)/n;
-    const pointerAngle = -Math.PI/2;
-
-    // Normalize to [0, 2pi)
-    let a = pointerAngle - angle;
-    a = ((a % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
-
-    const idx = Math.floor(a / step);
-    return idx;
-  }
+  function setStatus(msg){ statusText.textContent = msg; }
 
   function cryptoRand(){
     if (window.crypto && crypto.getRandomValues){
@@ -458,109 +431,100 @@
     return Math.random();
   }
 
-  // -----------------------------
-  // Spin animation
-  // -----------------------------
-  function easeOutCubic(t){
-    return 1 - Math.pow(1 - t, 3);
+  // Weighted pick among base ITEMS
+  function pickWeightedIndex() {
+    const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
+    const total = weights.reduce((a,b) => a + b, 0);
+    if (total <= 0) return Math.floor(cryptoRand() * ITEMS.length);
+
+    let r = cryptoRand() * total;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    return weights.length - 1;
   }
+
+  // Animation
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  // Current translateY of track
+  let currentY = 0;
+
+  // Initialize track so it starts somewhere in the middle
+  function initPosition() {
+    // Put “somewhere” so we have room above/below
+    const startIndex = Math.floor(sequence.length * 0.25);
+    currentY = -startIndex * STEP + centerOffsetPx();
+    track.style.transform = `translateY(${currentY}px)`;
+  }
+  initPosition();
 
   function spin(){
     if (isSpinning) return;
-    if (items.length < 2){
-      resultText.textContent = "⚠️ Bitte mindestens 2 Einträge in die Liste schreiben.";
-      return;
-    }
-
     isSpinning = true;
     spinBtn.disabled = true;
-    itemsArea.disabled = true;
-
     setStatus("Dreht…");
 
-    // Choose target: many rotations + random offset
-    const n = items.length;
-    const step = (Math.PI*2)/n;
+    // Choose weighted target from base list
+    const targetBaseIndex = pickWeightedIndex();
+    const targetText = ITEMS[targetBaseIndex].text;
 
-    // random final index
-    const targetIndex = Math.floor(cryptoRand() * n);
+    // Choose a final absolute index near the end, with enough “turns”
+    const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
+    const baseN = ITEMS.length;
 
-    // We want the wheel to end such that targetIndex is at the pointer.
-    // Solve for final angle such that getSelectedIndex() == targetIndex.
-    // The pointer corresponds to pointerAngle = -pi/2.
-    // For segment k, its angular range is [k*step, (k+1)*step).
-    // We can aim for the middle of that segment:
-    const pointerAngle = -Math.PI/2;
-    const targetMid = targetIndex * step + step/2;
+    // We want a target index far “below” current view.
+    // Compute an approximate current absolute index from currentY:
+    const approxIndex = Math.max(0, Math.floor((-currentY + centerOffsetPx()) / STEP));
 
-    // We need pointerAngle - finalAngle ≡ targetMid (mod 2pi)
-    // => finalAngle ≡ pointerAngle - targetMid (mod 2pi)
-    let finalAngleBase = pointerAngle - targetMid;
+    // Add turns * baseN plus the targetBaseIndex alignment
+    let targetAbsIndex = approxIndex + turns * baseN + targetBaseIndex;
 
-    // add extra full rotations
-    const extraTurns = 6 + Math.floor(cryptoRand()*5); // 6..10 turns
-    const finalAngle = finalAngleBase + extraTurns * (Math.PI*2);
+    // Keep within sequence length - a safety margin
+    const maxIndex = baseN * REPEATS - 5;
+    if (targetAbsIndex > maxIndex) {
+      // If too far, wrap it back but keep “long spin” feel
+      targetAbsIndex = (baseN * Math.floor(REPEATS * 0.6)) + targetBaseIndex;
+    }
 
-    const startAngle = angle;
-    const delta = finalAngle - startAngle;
+    // Compute finalY so that target item is centered
+    const finalY = -targetAbsIndex * STEP + centerOffsetPx();
 
-    const duration = 3800 + Math.floor(cryptoRand()*900); // 3.8..4.7s
+    const startY = currentY;
+    const delta = finalY - startY;
+
+    const duration = DURATION_MIN_MS + Math.floor(cryptoRand() * (DURATION_MAX_MS - DURATION_MIN_MS));
     const t0 = performance.now();
 
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        angle = startAngle + delta;
-        // reduce angle to keep numbers stable
-        angle = ((angle % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
-        drawWheel();
+        currentY = finalY;
+        track.style.transform = `translateY(${currentY}px)`;
 
-        const idx = getSelectedIndex();
-        const picked = items[idx];
-
-        resultText.textContent = picked;
+        resultText.textContent = targetText;
         setStatus("Fertig.");
         isSpinning = false;
         spinBtn.disabled = false;
-        itemsArea.disabled = false;
         return;
       }
 
       const e = easeOutCubic(t);
-      angle = startAngle + delta * e;
-      drawWheel();
+      currentY = startY + delta * e;
+      track.style.transform = `translateY(${currentY}px)`;
       requestAnimationFrame(frame);
     }
 
     requestAnimationFrame(frame);
   }
 
-  function resetResult(){
-    if (isSpinning) return;
-    resultText.textContent = "—";
-    setStatus("Bereit.");
-  }
-
-  // -----------------------------
-  // Events
-  // -----------------------------
   spinBtn.addEventListener("click", spin);
-  resetBtn.addEventListener("click", resetResult);
 
-  itemsArea.addEventListener("input", () => {
-    if (isSpinning) return;
-    items = clampItems(itemsArea.value);
-    saveItems(items);
-    drawWheel();
-  });
-
-  // Tap on wheel to spin (nice on mobile)
-  canvas.addEventListener("click", () => {
+  // Tap on viewport to spin (nice on mobile)
+  viewport.addEventListener("click", () => {
     if (!isSpinning) spin();
   });
-
-  // Initial draw
-  drawWheel();
 })();
 </script>
 </body>
