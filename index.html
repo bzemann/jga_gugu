@@ -75,7 +75,6 @@
       padding: 8px 8px 2px;
     }
 
-    /* ===== Reel UI ===== */
     .reel-wrap{
       width: min(860px, 96vw);
       border-radius: 18px;
@@ -184,7 +183,7 @@
       position:absolute;
       left: 0; right: 0;
       will-change: transform;
-      padding: 0 16px;            /* ✅ KEIN vertikales padding mehr -> Alignment passt */
+      padding: 0 16px;            /* wichtig: kein vertikales padding */
       z-index: 1;
       transform: translate3d(0,0,0);
     }
@@ -205,13 +204,10 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
 
-    .divider{
-      height: 2px;
-      background: rgba(255,255,255,0.10);
+      /* Divider “eingebacken” -> keine Extra DOM-Nodes -> kein Offset */
+      border-bottom: 2px solid rgba(255,255,255,0.10);
       margin: 0 28px;
-      border-radius: 999px;
     }
 
     .result{
@@ -328,13 +324,12 @@
     { text: "Schreib 3 Dinge auf, die gut laufen", weight: 1 },
   ];
 
-  // ✅ langsamer drehen
+  // langsamer drehen
   const MIN_TURNS = 8;
   const MAX_TURNS = 12;
   const DURATION_MIN_MS = 5200;
   const DURATION_MAX_MS = 7600;
 
-  // DOM
   const track = document.getElementById("track");
   const viewport = document.getElementById("viewport");
   const resultText = document.getElementById("resultText");
@@ -344,8 +339,8 @@
 
   // Must match CSS .item height
   const ITEM_HEIGHT = 84;
-  // divider height is 2px (CSS). Step = item + divider
-  const STEP = ITEM_HEIGHT + 2;
+  // ✅ STEP ist jetzt exakt ITEM_HEIGHT, weil divider im item steckt
+  const STEP = ITEM_HEIGHT;
 
   const baseN = ITEMS.length;
   if (baseN < 2) {
@@ -367,11 +362,9 @@
     return ((x % m) + m) % m;
   }
 
-  // Weighted pick among ITEMS (weight=0 => never)
   function pickWeightedIndex() {
     const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
     const total = weights.reduce((a,b) => a + b, 0);
-
     if (total <= 0) return Math.floor(cryptoRand() * baseN);
 
     let r = cryptoRand() * total;
@@ -382,7 +375,7 @@
     return baseN - 1;
   }
 
-  // Render 3 cycles for periodic reel (A..N | A..N | A..N)
+  // 3 cycles for periodic reel
   function renderTrack3Cycles(){
     track.innerHTML = "";
     for (let cycle = 0; cycle < 3; cycle++){
@@ -391,10 +384,6 @@
         div.className = "item";
         div.textContent = ITEMS[i].text;
         track.appendChild(div);
-
-        const hr = document.createElement("div");
-        hr.className = "divider";
-        track.appendChild(hr);
       }
     }
   }
@@ -405,7 +394,7 @@
     return Math.floor(h / 2 - ITEM_HEIGHT / 2);
   }
 
-  // currentPos ist im Ruhezustand IMMER Integer (Index 0..N-1)
+  // integer resting position in [0..N-1]
   let currentPos = 0;
 
   function posToY(pos){
@@ -415,20 +404,16 @@
   }
 
   function applyPos(pos){
-    // ✅ translate3d hilft oft gegen “rendering nicht hinterher”
     track.style.transform = `translate3d(0, ${posToY(pos)}px, 0)`;
   }
 
-  // init
   applyPos(currentPos);
 
   window.addEventListener("resize", () => {
     if (!isSpinning) applyPos(currentPos);
   });
 
-  // Spindown: am Ende extra langsam
   function easeSpindown(t){
-    // fast at start, very slow near end
     const fast = 1 - Math.pow(1 - t, 1.8);
     const slow = 1 - Math.pow(1 - t, 6.5);
     const w = t * t;
@@ -443,15 +428,12 @@
     const targetIndex = pickWeightedIndex();
     const targetText = ITEMS[targetIndex].text;
 
-    // Startposition einrasten (Integer)
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, baseN);
 
-    // Schritte bis target (Integer)
     const deltaToTarget = normMod(targetIndex - curMod, baseN);
-
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
-    const totalDeltaInt = turns * baseN + deltaToTarget; // INTEGER
+    const totalDeltaInt = turns * baseN + deltaToTarget;
 
     const startPos = startPosInt;
     const endPos = startPosInt + totalDeltaInt;
@@ -462,10 +444,10 @@
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        // Endposition exakt auf Satz
         currentPos = normMod(endPos, baseN);
         applyPos(currentPos);
 
+        // ✅ Ergebnis passt jetzt garantiert zum sichtbaren Item
         resultText.textContent = targetText;
         isSpinning = false;
         spinBtn.disabled = false;
@@ -473,7 +455,7 @@
       }
 
       const e = easeSpindown(t);
-      const pos = startPos + totalDeltaInt * e; // float während animation ok
+      const pos = startPos + totalDeltaInt * e;
       applyPos(pos);
       requestAnimationFrame(frame);
     }
