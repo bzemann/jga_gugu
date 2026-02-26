@@ -184,8 +184,9 @@
       position:absolute;
       left: 0; right: 0;
       will-change: transform;
-      padding: 24px 16px;
+      padding: 0 16px;            /* ✅ KEIN vertikales padding mehr -> Alignment passt */
       z-index: 1;
+      transform: translate3d(0,0,0);
     }
 
     .item{
@@ -327,11 +328,11 @@
     { text: "Schreib 3 Dinge auf, die gut laufen", weight: 1 },
   ];
 
-  // Spin feel
-  const MIN_TURNS = 10;
-  const MAX_TURNS = 16;
-  const DURATION_MIN_MS = 2600;
-  const DURATION_MAX_MS = 4100;
+  // ✅ langsamer drehen
+  const MIN_TURNS = 8;
+  const MAX_TURNS = 12;
+  const DURATION_MIN_MS = 5200;
+  const DURATION_MAX_MS = 7600;
 
   // DOM
   const track = document.getElementById("track");
@@ -371,10 +372,7 @@
     const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
     const total = weights.reduce((a,b) => a + b, 0);
 
-    if (total <= 0) {
-      // fallback: uniform (only if all weights are 0)
-      return Math.floor(cryptoRand() * baseN);
-    }
+    if (total <= 0) return Math.floor(cryptoRand() * baseN);
 
     let r = cryptoRand() * total;
     for (let i = 0; i < weights.length; i++) {
@@ -417,7 +415,8 @@
   }
 
   function applyPos(pos){
-    track.style.transform = `translateY(${posToY(pos)}px)`;
+    // ✅ translate3d hilft oft gegen “rendering nicht hinterher”
+    track.style.transform = `translate3d(0, ${posToY(pos)}px, 0)`;
   }
 
   // init
@@ -427,12 +426,13 @@
     if (!isSpinning) applyPos(currentPos);
   });
 
-  // Realistic spindown easing
+  // Spindown: am Ende extra langsam
   function easeSpindown(t){
-    const a = 1 - Math.pow(1 - t, 2.2); // fast early
-    const b = 1 - Math.pow(1 - t, 5.5); // slower approach
+    // fast at start, very slow near end
+    const fast = 1 - Math.pow(1 - t, 1.8);
+    const slow = 1 - Math.pow(1 - t, 6.5);
     const w = t * t;
-    return a * (1 - w) + b * w;
+    return fast * (1 - w) + slow * w;
   }
 
   function spin(){
@@ -443,7 +443,7 @@
     const targetIndex = pickWeightedIndex();
     const targetText = ITEMS[targetIndex].text;
 
-    // Startposition immer einrasten (Integer)
+    // Startposition einrasten (Integer)
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, baseN);
 
@@ -453,8 +453,8 @@
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
     const totalDeltaInt = turns * baseN + deltaToTarget; // INTEGER
 
-    const startPos = startPosInt;              // INTEGER
-    const endPos = startPosInt + totalDeltaInt; // INTEGER
+    const startPos = startPosInt;
+    const endPos = startPosInt + totalDeltaInt;
 
     const duration = DURATION_MIN_MS + Math.floor(cryptoRand() * (DURATION_MAX_MS - DURATION_MIN_MS));
     const t0 = performance.now();
@@ -462,7 +462,7 @@
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        // Endposition garantiert integer und passt zum targetIndex (mod N)
+        // Endposition exakt auf Satz
         currentPos = normMod(endPos, baseN);
         applyPos(currentPos);
 
@@ -473,7 +473,7 @@
       }
 
       const e = easeSpindown(t);
-      const pos = startPos + totalDeltaInt * e; // float during animation OK
+      const pos = startPos + totalDeltaInt * e; // float während animation ok
       applyPos(pos);
       requestAnimationFrame(frame);
     }
