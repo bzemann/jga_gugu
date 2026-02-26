@@ -426,7 +426,7 @@
     spinBtn.disabled = true;
 
     const targetIndex = pickWeightedIndex();
-    const targetText = ITEMS[targetIndex].text;
+    const targetText = ITEMS[(targetIndex + 1) % baseN].text;
 
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, baseN);
