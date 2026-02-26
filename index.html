@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zufallsgenerator</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+      .card { max-width: 720px; margin: 0 auto; padding: 18px; border: 1px solid #ddd; border-radius: 14px; }
+      h1 { margin: 0 0 10px; font-size: 22px; }
+      button { padding: 12px 14px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+      #out { margin-top: 16px; padding: 14px; border-radius: 12px; background: #f6f6f6; min-height: 56px; font-size: 18px; }
+      textarea { width: 100%; min-height: 160px; margin-top: 10px; border-radius: 10px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+      .hint { font-size: 13px; color: #555; margin-top: 8px; }
+      label { font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>🎲 Zufälliges Wort / Satz</h1>
+
+      <div class="row">
+        <button id="btn">Neu ziehen</button>
+        <button id="btnNoRepeat" title="Zieht ohne sofortige Wiederholung">Neu (ohne Wiederholung)</button>
+      </div>
+
+      <div id="out" aria-live="polite"></div>
+
+      <p class="hint">Liste (eine Zeile = ein Eintrag). Änderungen werden lokal im Browser gespeichert.</p>
+      <label for="list">Vorgegebene Liste</label>
+      <textarea id="list" placeholder="z.B.&#10;Hallo Welt&#10;Heute ist ein guter Tag&#10;Kaffee oder Tee?"></textarea>
+    </div>
+
+    <script>
+      const DEFAULT_ITEMS = [
+        "Hallo Welt",
+        "Heute ist ein guter Tag",
+        "Kaffee oder Tee?",
+        "Mach 10 Liegestütze",
+        "Sag ein Kompliment",
+      ];
+
+      const out = document.getElementById("out");
+      const btn = document.getElementById("btn");
+      const btnNoRepeat = document.getElementById("btnNoRepeat");
+      const textarea = document.getElementById("list");
+
+      const saved = localStorage.getItem("items_v1");
+      textarea.value = saved ?? DEFAULT_ITEMS.join("\n");
+
+      function getItems() {
+        return textarea.value
+          .split("\n")
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+      }
+
+      function saveItems() {
+        localStorage.setItem("items_v1", textarea.value);
+      }
+
+      function randInt(n) {
+        if (window.crypto && crypto.getRandomValues) {
+          const x = new Uint32Array(1);
+          crypto.getRandomValues(x);
+          return x[0] % n;
+        }
+        return Math.floor(Math.random() * n);
+      }
+
+      function pickRandom(items) {
+        return items[randInt(items.length)];
+      }
+
+      function pickNoImmediateRepeat(items) {
+        const last = localStorage.getItem("last_pick_v1");
+        if (items.length === 1) return items[0];
+
+        let choice = pickRandom(items);
+        for (let i = 0; i < 10 && choice === last; i++) {
+          choice = pickRandom(items);
+        }
+        return choice;
+      }
+
+      function show(text) {
+        out.textContent = text;
+        localStorage.setItem("last_pick_v1", text);
+      }
+
+      btn.addEventListener("click", () => {
+        const items = getItems();
+        if (items.length === 0) return show("⚠️ Bitte mindestens einen Eintrag in die Liste schreiben.");
+        show(pickRandom(items));
+      });
+
+      btnNoRepeat.addEventListener("click", () => {
+        const items = getItems();
+        if (items.length === 0) return show("⚠️ Bitte mindestens einen Eintrag in die Liste schreiben.");
+        show(pickNoImmediateRepeat(items));
+      });
+
+      textarea.addEventListener("input", saveItems);
+
+      const initialItems = getItems();
+      if (initialItems.length > 0) show(pickRandom(initialItems));
+    </script>
+  </body>
+</html>
