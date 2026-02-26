@@ -391,8 +391,7 @@
   renderTrack3Cycles();
 
   function centerOffsetPx() {
-    const h = viewport.clientHeight;
-    return Math.floor(h / 2 - ITEM_HEIGHT / 2);
+    return 2 * ITEM_HEIGHT;
   }
 
   // integer resting position in [0..N-1]
