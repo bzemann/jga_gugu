@@ -91,7 +91,7 @@
       display:grid;
       grid-template-columns: 64px 1fr 64px;
       align-items: stretch;
-      height: 420px; /* fixes snapping */
+      height: 420px; /* 5 * 84 -> stable snapping */
     }
 
     .side{
@@ -130,7 +130,7 @@
       background:
         linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.08) 40%, rgba(0,0,0,0.18)),
         radial-gradient(100% 120% at 50% 40%, rgba(255,255,255,0.08), transparent 60%);
-      height: 420px; /* fixes snapping */
+      height: 420px;
     }
 
     .window{
@@ -229,6 +229,18 @@
       font-size: 18px;
       line-height: 1.35;
       min-height: 28px;
+      white-space: pre-line; /* allow newline for title + explanation */
+    }
+    .result .value .t{
+      font-weight: 900;
+    }
+    .result .value .d{
+      display:block;
+      margin-top: 6px;
+      color: rgba(255,255,255,0.75);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 600;
     }
 
     .controls{
@@ -350,16 +362,17 @@
 <script>
 (() => {
   // =========================================================
-  // SÄTZE + WAHRSCHEINLICHKEITEN (weight=0 => wird nie gewählt)
+  // ITEMS: title (in Rolle), desc (nur im Ergebnis), weight (Häufigkeit)
+  // weight=0 => wird nie gewählt, bleibt aber sichtbar in der Rolle
   // =========================================================
   const ITEMS = [
-    { text: "Hallo Welt", weight: 1 },
-    { text: "Heute ist ein guter Tag", weight: 2 },
-    { text: "Kaffee oder Tee?", weight: 1 },
-    { text: "Mach 10 Liegestütze", weight: 1 },
-    { text: "Ruf eine Person an, die du magst", weight: 1 },
-    { text: "Kurzer Spaziergang: 5 Minuten", weight: 1 },
-    { text: "Schreib 3 Dinge auf, die gut laufen", weight: 1 },
+    { title: "Hallo",        desc: "Sag kurz Hallo zu jemandem.",                 weight: 1 },
+    { title: "Guter Tag",    desc: "Erinnere dich an 1 Sache die gut lief heute.", weight: 2 },
+    { title: "Kaffee/Tee",   desc: "Entscheide spontan: Kaffee oder Tee?",        weight: 1 },
+    { title: "10 Push-ups",  desc: "Mach 10 Liegestütze.",                        weight: 1 },
+    { title: "Anruf",        desc: "Ruf eine Person an, die du magst.",            weight: 1 },
+    { title: "Spaziergang",  desc: "5 Minuten rausgehen und bewegen.",            weight: 1 },
+    { title: "3 Dinge",      desc: "Schreib 3 Dinge auf, die gut laufen.",        weight: 1 },
   ];
 
   // langsamer drehen
@@ -417,19 +430,17 @@
       for (let i = 0; i < baseN; i++){
         const div = document.createElement("div");
         div.className = "item";
-        div.textContent = ITEMS[i].text;
+        div.textContent = ITEMS[i].title;   // ✅ only title on the reel
         track.appendChild(div);
       }
     }
   }
   renderTrack3Cycles();
 
-  // fixed center offset for 420px viewport (5*84)
   function centerOffsetPx() {
-    return 2 * ITEM_HEIGHT; // 168px
+    return 2 * ITEM_HEIGHT; // 168px for 420px viewport
   }
 
-  // integer resting position in [0..N-1]
   let currentPos = 0;
 
   function posToY(pos){
@@ -451,13 +462,33 @@
     return fast * (1 - w) + slow * w;
   }
 
+  function setResult(item){
+    // title + desc below
+    const title = item.title ?? "";
+    const desc  = item.desc ?? "";
+    resultText.innerHTML = `<span class="t">${escapeHtml(title)}</span>` +
+                           (desc ? `<span class="d">${escapeHtml(desc)}</span>` : "");
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   function spin(){
     if (isSpinning) return;
     isSpinning = true;
     spinBtn.disabled = true;
 
     const targetIndex = pickWeightedIndex();
-    const targetText = ITEMS[(targetIndex + 1) % baseN].text; // hardcoded +1 output offset
+
+    // Hardcoded +1 output offset (as in your current setup)
+    const shownIndex = (targetIndex + 1) % baseN;
+    const targetItem = ITEMS[shownIndex];
 
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, baseN);
@@ -478,7 +509,7 @@
         currentPos = normMod(endPos, baseN);
         applyPos(currentPos);
 
-        resultText.textContent = targetText;
+        setResult(targetItem);
         isSpinning = false;
         spinBtn.disabled = false;
         return;
