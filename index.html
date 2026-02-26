@@ -377,27 +377,27 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // text
-      const label = items[i];
-      ctx.save();
-      // place text at middle of segment
-      const mid = a0 + step/2;
-      ctx.rotate(mid);
+      <!-- // text -->
+      <!-- const label = items[i]; -->
+      <!-- ctx.save(); -->
+      <!-- // place text at middle of segment -->
+      <!-- const mid = a0 + step/2; -->
+      <!-- ctx.rotate(mid); -->
 
-      // move outwards and draw rotated text
-      ctx.translate(r*0.62, 0);
-      ctx.rotate(Math.PI/2);
+      <!-- // move outwards and draw rotated text -->
+      <!-- ctx.translate(r*0.62, 0); -->
+      <!-- ctx.rotate(Math.PI/2); -->
 
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
-      ctx.font = "700 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      <!-- ctx.fillStyle = "rgba(255,255,255,0.92)"; -->
+      <!-- ctx.font = "700 30px system-ui, -apple-system, Segoe UI, Roboto, Arial"; -->
+      <!-- ctx.textAlign = "center"; -->
+      <!-- ctx.textBaseline = "middle"; -->
 
-      // truncate on-wheel to keep it readable
-      const short = truncateToFit(label, 18);
-      ctx.fillText(short, 0, 0);
+      <!-- // truncate on-wheel to keep it readable -->
+      <!-- const short = truncateToFit(label, 18); -->
+      <!-- ctx.fillText(short, 0, 0); -->
 
-      ctx.restore();
+      <!-- ctx.restore(); -->
     }
 
     // inner ring
