@@ -1,110 +1,567 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Zufallsgenerator</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-      .card { max-width: 720px; margin: 0 auto; padding: 18px; border: 1px solid #ddd; border-radius: 14px; }
-      h1 { margin: 0 0 10px; font-size: 22px; }
-      button { padding: 12px 14px; font-size: 16px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
-      #out { margin-top: 16px; padding: 14px; border-radius: 12px; background: #f6f6f6; min-height: 56px; font-size: 18px; }
-      textarea { width: 100%; min-height: 160px; margin-top: 10px; border-radius: 10px; padding: 10px; border: 1px solid #ccc; font-size: 14px; }
-      .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-      .hint { font-size: 13px; color: #555; margin-top: 8px; }
-      label { font-weight: 600; }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1>🎲 Zufälliges Wort / Satz</h1>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glücksrad</title>
+  <style>
+    :root{
+      --bg: #0b0f17;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.09);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --border: rgba(255,255,255,0.12);
+      --shadow: 0 18px 60px rgba(0,0,0,0.45);
+    }
 
-      <div class="row">
-        <button id="btn">Neu ziehen</button>
-        <button id="btnNoRepeat" title="Zieht ohne sofortige Wiederholung">Neu (ohne Wiederholung)</button>
-      </div>
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(1200px 700px at 15% 15%, rgba(120,140,255,0.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 20%, rgba(255,120,210,0.14), transparent 55%),
+        radial-gradient(900px 600px at 50% 90%, rgba(80,255,200,0.10), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+    }
 
-      <div id="out" aria-live="polite"></div>
+    .wrap{
+      width: min(980px, 100%);
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
 
-      <p class="hint">Liste (eine Zeile = ein Eintrag). Änderungen werden lokal im Browser gespeichert.</p>
-      <label for="list">Vorgegebene Liste</label>
-      <textarea id="list" placeholder="z.B.&#10;Hallo Welt&#10;Heute ist ein guter Tag&#10;Kaffee oder Tee?"></textarea>
+    .header{
+      padding: 18px 18px 6px;
+      text-align:center;
+    }
+    .header h1{
+      margin:0;
+      font-size: clamp(22px, 3.5vw, 34px);
+      letter-spacing: 0.2px;
+    }
+    .header p{
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .card{
+      background: linear-gradient(180deg, var(--card), transparent 160%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .main{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .wheel-area{
+      display:grid;
+      place-items:center;
+      padding: 8px 8px 2px;
+    }
+
+    .wheel-wrap{
+      position: relative;
+      width: min(420px, 92vw);
+      aspect-ratio: 1 / 1;
+      display:grid;
+      place-items:center;
+    }
+
+    canvas{
+      width: 100%;
+      height: 100%;
+      display:block;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Pointer (oben) */
+    .pointer{
+      position:absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 22px solid rgba(255,255,255,0.92);
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+      z-index: 3;
+    }
+
+    /* Center cap */
+    .cap{
+      position:absolute;
+      width: 18%;
+      aspect-ratio: 1 / 1;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.12) 72%, rgba(0,0,0,0.25));
+      border: 1px solid rgba(255,255,255,0.25);
+      z-index: 2;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+      pointer-events:none;
+    }
+
+    .result{
+      margin-top: 6px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+    }
+    .result .label{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .result .value{
+      font-size: 18px;
+      line-height: 1.35;
+      min-height: 28px;
+    }
+
+    .controls{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+      justify-content:center;
+      margin-top: 10px;
+    }
+
+    button{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.05s ease, background 0.15s ease, border-color 0.15s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.24); }
+    button:active{ transform: translateY(1px); }
+    button:disabled{
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .secondary{
+      background: rgba(255,255,255,0.06);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 14px 18px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 140%);
+    }
+    summary{
+      cursor:pointer;
+      color: var(--muted);
+      font-size: 14px;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    summary::before{
+      content:"▸";
+      display:inline-block;
+      margin-right: 8px;
+      transform: translateY(-1px);
+      transition: transform 0.15s ease;
+    }
+    details[open] summary::before{ transform: rotate(90deg) translateX(1px); }
+
+    textarea{
+      width:100%;
+      margin-top: 10px;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.22);
+      color: var(--text);
+      min-height: 140px;
+      font-size: 14px;
+      line-height: 1.4;
+      resize: vertical;
+    }
+
+    .hint{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    @media (min-width: 920px){
+      .wrap{ grid-template-columns: 1fr; }
+      .main{
+        grid-template-columns: 1.1fr 0.9fr;
+        align-items: start;
+      }
+      .controls{ justify-content: flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>🎡 Glücksrad</h1>
+      <p>Drehen, warten bis es stoppt – der getroffene Satz erscheint darunter.</p>
     </div>
 
-    <script>
-      const DEFAULT_ITEMS = [
-        "Hallo Welt",
-        "Heute ist ein guter Tag",
-        "Kaffee oder Tee?",
-        "Mach 10 Liegestütze",
-        "Sag ein Kompliment",
-      ];
+    <div class="card">
+      <div class="main">
+        <div class="wheel-area">
+          <div class="wheel-wrap" aria-label="Glücksrad">
+            <div class="pointer" aria-hidden="true"></div>
+            <canvas id="wheel" width="900" height="900"></canvas>
+            <div class="cap" aria-hidden="true"></div>
+          </div>
 
-      const out = document.getElementById("out");
-      const btn = document.getElementById("btn");
-      const btnNoRepeat = document.getElementById("btnNoRepeat");
-      const textarea = document.getElementById("list");
+          <div class="result" style="width:min(620px, 92vw); margin-top: 14px;">
+            <div class="label">Ergebnis</div>
+            <div class="value" id="resultText">—</div>
 
-      const saved = localStorage.getItem("items_v1");
-      textarea.value = saved ?? DEFAULT_ITEMS.join("\n");
+            <div class="controls">
+              <button id="spinBtn">Rad drehen</button>
+              <button id="resetBtn" class="secondary" title="Setzt nur die Anzeige zurück">Ergebnis zurücksetzen</button>
+            </div>
+          </div>
+        </div>
 
-      function getItems() {
-        return textarea.value
-          .split("\n")
-          .map(s => s.trim())
-          .filter(s => s.length > 0);
+        <div>
+          <div class="result">
+            <div class="label">Status</div>
+            <div class="value" id="statusText" style="font-size:14px; color: var(--muted);">Bereit.</div>
+          </div>
+
+          <div class="hint" style="margin-top:12px;">
+            Optional: Liste unten anpassen (eine Zeile = ein Feld). Wird lokal im Browser gespeichert.
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Liste bearbeiten</summary>
+        <textarea id="itemsArea" spellcheck="false"></textarea>
+        <div class="hint">
+          Tipp: Mindestens 2 Einträge sind sinnvoll. Bei sehr langen Sätzen wird auf dem Rad gekürzt,
+          aber das volle Ergebnis erscheint darunter.
+        </div>
+      </details>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // -----------------------------
+  // Data
+  // -----------------------------
+  const DEFAULT_ITEMS = [
+    "Hallo Welt",
+    "Heute ist ein guter Tag",
+    "Kaffee oder Tee?",
+    "Mach 10 Liegestütze",
+    "Ruf eine Person an, die du magst",
+    "Kurzer Spaziergang: 5 Minuten",
+    "Schreib 3 Dinge auf, die gut laufen",
+  ];
+
+  const LS_ITEMS = "wheel_items_v2";
+
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+
+  const resultText = document.getElementById("resultText");
+  const statusText = document.getElementById("statusText");
+
+  const spinBtn = document.getElementById("spinBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const itemsArea = document.getElementById("itemsArea");
+
+  let items = loadItems();
+  itemsArea.value = items.join("\n");
+
+  // -----------------------------
+  // Wheel rendering
+  // -----------------------------
+  // Angle convention:
+  //  - wheel angle "angle" rotates the wheel clockwise
+  //  - pointer is at the top (12 o'clock)
+  let angle = 0;           // current wheel angle in radians
+  let isSpinning = false;
+
+  function clampItems(raw) {
+    const arr = raw
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    return arr.length ? arr : DEFAULT_ITEMS.slice();
+  }
+
+  function loadItems(){
+    const saved = localStorage.getItem(LS_ITEMS);
+    if (!saved) return DEFAULT_ITEMS.slice();
+    return clampItems(saved);
+  }
+
+  function saveItems(arr){
+    localStorage.setItem(LS_ITEMS, arr.join("\n"));
+  }
+
+  // Drawing helpers
+  function drawWheel(){
+    const w = canvas.width, h = canvas.height;
+    const cx = w/2, cy = h/2;
+    const r = Math.min(w,h)*0.47;
+
+    ctx.clearRect(0,0,w,h);
+
+    // subtle outer ring shadow
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+
+    const n = items.length;
+    const step = (Math.PI * 2) / n;
+
+    // Wheel base circle
+    ctx.beginPath();
+    ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.03)";
+    ctx.fill();
+
+    // Segments
+    for (let i=0;i<n;i++){
+      const a0 = i*step;
+      const a1 = a0 + step;
+
+      // segment fill (alternating)
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,r,a0,a1);
+      ctx.closePath();
+
+      const alt = (i % 2 === 0);
+      ctx.fillStyle = alt ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.06)";
+      ctx.fill();
+
+      // segment border
+      ctx.strokeStyle = "rgba(255,255,255,0.16)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // text
+      const label = items[i];
+      ctx.save();
+      // place text at middle of segment
+      const mid = a0 + step/2;
+      ctx.rotate(mid);
+
+      // move outwards and draw rotated text
+      ctx.translate(r*0.62, 0);
+      ctx.rotate(Math.PI/2);
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "700 30px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // truncate on-wheel to keep it readable
+      const short = truncateToFit(label, 18);
+      ctx.fillText(short, 0, 0);
+
+      ctx.restore();
+    }
+
+    // inner ring
+    ctx.beginPath();
+    ctx.arc(0,0,r*0.18,0,Math.PI*2);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(0,0,0,0.20)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // outer stroke (not rotated)
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+  }
+
+  function truncateToFit(s, maxChars){
+    if (s.length <= maxChars) return s;
+    return s.slice(0, Math.max(0, maxChars-1)) + "…";
+  }
+
+  function setStatus(msg){
+    statusText.textContent = msg;
+  }
+
+  // -----------------------------
+  // Picking logic: which segment under pointer?
+  // Pointer is at top: angle -pi/2 in standard unit circle.
+  // Because we rotate the wheel by "angle", the segment at pointer corresponds to:
+  // index = floor( normalize( (pointerAngle - angle) ) / step )
+  // with pointerAngle = -pi/2
+  function getSelectedIndex(){
+    const n = items.length;
+    const step = (Math.PI*2)/n;
+    const pointerAngle = -Math.PI/2;
+
+    // Normalize to [0, 2pi)
+    let a = pointerAngle - angle;
+    a = ((a % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
+
+    const idx = Math.floor(a / step);
+    return idx;
+  }
+
+  function cryptoRand(){
+    if (window.crypto && crypto.getRandomValues){
+      const x = new Uint32Array(1);
+      crypto.getRandomValues(x);
+      return x[0] / 0xFFFFFFFF;
+    }
+    return Math.random();
+  }
+
+  // -----------------------------
+  // Spin animation
+  // -----------------------------
+  function easeOutCubic(t){
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function spin(){
+    if (isSpinning) return;
+    if (items.length < 2){
+      resultText.textContent = "⚠️ Bitte mindestens 2 Einträge in die Liste schreiben.";
+      return;
+    }
+
+    isSpinning = true;
+    spinBtn.disabled = true;
+    itemsArea.disabled = true;
+
+    setStatus("Dreht…");
+
+    // Choose target: many rotations + random offset
+    const n = items.length;
+    const step = (Math.PI*2)/n;
+
+    // random final index
+    const targetIndex = Math.floor(cryptoRand() * n);
+
+    // We want the wheel to end such that targetIndex is at the pointer.
+    // Solve for final angle such that getSelectedIndex() == targetIndex.
+    // The pointer corresponds to pointerAngle = -pi/2.
+    // For segment k, its angular range is [k*step, (k+1)*step).
+    // We can aim for the middle of that segment:
+    const pointerAngle = -Math.PI/2;
+    const targetMid = targetIndex * step + step/2;
+
+    // We need pointerAngle - finalAngle ≡ targetMid (mod 2pi)
+    // => finalAngle ≡ pointerAngle - targetMid (mod 2pi)
+    let finalAngleBase = pointerAngle - targetMid;
+
+    // add extra full rotations
+    const extraTurns = 6 + Math.floor(cryptoRand()*5); // 6..10 turns
+    const finalAngle = finalAngleBase + extraTurns * (Math.PI*2);
+
+    const startAngle = angle;
+    const delta = finalAngle - startAngle;
+
+    const duration = 3800 + Math.floor(cryptoRand()*900); // 3.8..4.7s
+    const t0 = performance.now();
+
+    function frame(now){
+      const t = (now - t0) / duration;
+      if (t >= 1){
+        angle = startAngle + delta;
+        // reduce angle to keep numbers stable
+        angle = ((angle % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
+        drawWheel();
+
+        const idx = getSelectedIndex();
+        const picked = items[idx];
+
+        resultText.textContent = picked;
+        setStatus("Fertig.");
+        isSpinning = false;
+        spinBtn.disabled = false;
+        itemsArea.disabled = false;
+        return;
       }
 
-      function saveItems() {
-        localStorage.setItem("items_v1", textarea.value);
-      }
+      const e = easeOutCubic(t);
+      angle = startAngle + delta * e;
+      drawWheel();
+      requestAnimationFrame(frame);
+    }
 
-      function randInt(n) {
-        if (window.crypto && crypto.getRandomValues) {
-          const x = new Uint32Array(1);
-          crypto.getRandomValues(x);
-          return x[0] % n;
-        }
-        return Math.floor(Math.random() * n);
-      }
+    requestAnimationFrame(frame);
+  }
 
-      function pickRandom(items) {
-        return items[randInt(items.length)];
-      }
+  function resetResult(){
+    if (isSpinning) return;
+    resultText.textContent = "—";
+    setStatus("Bereit.");
+  }
 
-      function pickNoImmediateRepeat(items) {
-        const last = localStorage.getItem("last_pick_v1");
-        if (items.length === 1) return items[0];
+  // -----------------------------
+  // Events
+  // -----------------------------
+  spinBtn.addEventListener("click", spin);
+  resetBtn.addEventListener("click", resetResult);
 
-        let choice = pickRandom(items);
-        for (let i = 0; i < 10 && choice === last; i++) {
-          choice = pickRandom(items);
-        }
-        return choice;
-      }
+  itemsArea.addEventListener("input", () => {
+    if (isSpinning) return;
+    items = clampItems(itemsArea.value);
+    saveItems(items);
+    drawWheel();
+  });
 
-      function show(text) {
-        out.textContent = text;
-        localStorage.setItem("last_pick_v1", text);
-      }
+  // Tap on wheel to spin (nice on mobile)
+  canvas.addEventListener("click", () => {
+    if (!isSpinning) spin();
+  });
 
-      btn.addEventListener("click", () => {
-        const items = getItems();
-        if (items.length === 0) return show("⚠️ Bitte mindestens einen Eintrag in die Liste schreiben.");
-        show(pickRandom(items));
-      });
-
-      btnNoRepeat.addEventListener("click", () => {
-        const items = getItems();
-        if (items.length === 0) return show("⚠️ Bitte mindestens einen Eintrag in die Liste schreiben.");
-        show(pickNoImmediateRepeat(items));
-      });
-
-      textarea.addEventListener("input", saveItems);
-
-      const initialItems = getItems();
-      if (initialItems.length > 0) show(pickRandom(initialItems));
-    </script>
-  </body>
+  // Initial draw
+  drawWheel();
+})();
+</script>
+</body>
 </html>
