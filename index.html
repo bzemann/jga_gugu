@@ -64,7 +64,7 @@
 
     .main{
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr; /* now full width reel */
       gap: 14px;
       padding: 18px;
     }
@@ -77,7 +77,7 @@
 
     /* ===== Reel UI ===== */
     .reel-wrap{
-      width: min(520px, 92vw);
+      width: min(860px, 96vw); /* wider */
       border-radius: 18px;
       border: 1px solid rgba(255,255,255,0.14);
       background:
@@ -90,9 +90,9 @@
 
     .reel-inner{
       display:grid;
-      grid-template-columns: 56px 1fr 56px;
+      grid-template-columns: 64px 1fr 64px; /* slightly thicker sides */
       align-items: stretch;
-      min-height: 340px;
+      min-height: 360px;
     }
 
     .side{
@@ -111,7 +111,7 @@
       flex-direction: column;
       align-items:center;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 12px 0;
       opacity: 0.9;
     }
     .bulb{
@@ -135,8 +135,8 @@
 
     .window{
       position:absolute;
-      left: 14px;
-      right: 14px;
+      left: 18px;
+      right: 18px;
       top: 50%;
       transform: translateY(-50%);
       height: 84px;
@@ -152,7 +152,7 @@
       position:absolute;
       top: 50%;
       transform: translateY(-50%);
-      width: 36px;
+      width: 40px;
       height: 18px;
       border-radius: 999px;
       background: rgba(255,255,255,0.14);
@@ -161,8 +161,8 @@
       z-index: 4;
       pointer-events:none;
     }
-    .bracket.left{ left: 10px; }
-    .bracket.right{ right: 10px; }
+    .bracket.left{ left: 12px; }
+    .bracket.right{ right: 12px; }
 
     .fade{
       position:absolute;
@@ -194,10 +194,10 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      padding: 0 14px;
+      padding: 0 18px;
       font-weight: 800;
       letter-spacing: 0.2px;
-      font-size: clamp(18px, 2.6vw, 28px);
+      font-size: clamp(18px, 2.6vw, 30px);
       color: rgba(255,255,255,0.92);
       text-shadow: 0 2px 0 rgba(0,0,0,0.35);
       user-select:none;
@@ -209,7 +209,7 @@
     .divider{
       height: 2px;
       background: rgba(255,255,255,0.10);
-      margin: 0 22px;
+      margin: 0 28px;
       border-radius: 999px;
     }
 
@@ -219,7 +219,7 @@
       border-radius: 14px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.06);
-      width: min(620px, 92vw);
+      width: min(860px, 96vw);
     }
     .result .label{
       font-size: 12px;
@@ -239,7 +239,7 @@
       gap: 10px;
       flex-wrap: wrap;
       align-items:center;
-      justify-content:center;
+      justify-content:flex-start;
       margin-top: 10px;
     }
 
@@ -258,15 +258,6 @@
     button:hover{ background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.24); }
     button:active{ transform: translateY(1px); }
     button:disabled{ opacity: 0.55; cursor: not-allowed; }
-
-    @media (min-width: 920px){
-      .wrap{ grid-template-columns: 1fr; }
-      .main{
-        grid-template-columns: 1.1fr 0.9fr;
-        align-items: start;
-      }
-      .controls{ justify-content: flex-start; }
-    }
   </style>
 </head>
 
@@ -284,7 +275,8 @@
             <div class="reel-inner">
               <div class="side">
                 <div class="bulbs" aria-hidden="true">
-                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
                 </div>
               </div>
 
@@ -300,7 +292,8 @@
 
               <div class="side right">
                 <div class="bulbs" aria-hidden="true">
-                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                  <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
                 </div>
               </div>
             </div>
@@ -315,18 +308,6 @@
             </div>
           </div>
         </div>
-
-        <div>
-          <div class="result">
-            <div class="label">Status</div>
-            <div class="value" id="statusText" style="font-size:14px; color: var(--muted);">Bereit.</div>
-          </div>
-
-          <div style="margin-top:12px; color: var(--muted); font-size: 13px; line-height: 1.4;">
-            Wahrscheinlichkeiten kannst du im Code oben in <code>ITEMS</code> über <code>weight</code> ändern.
-            Beispiel: <code>weight: 5</code> = fünfmal so häufig wie <code>weight: 1</code>.
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -334,8 +315,7 @@
 <script>
 (() => {
   // =========================================================
-  // 1) HIER ÄNDERST DU SÄTZE + WAHRSCHEINLICHKEITEN
-  //    weight = relative Häufigkeit (z.B. 5 ist 5x so oft wie 1)
+  // SÄTZE + WAHRSCHEINLICHKEITEN (weight=0 => wird nie gewählt)
   // =========================================================
   const ITEMS = [
     { text: "Hallo Welt", weight: 1 },
@@ -348,16 +328,15 @@
   ];
 
   // Spin feel
-  const MIN_TURNS = 10;          // mindestens ganze Zyklen
-  const MAX_TURNS = 16;          // maximal
-  const DURATION_MIN_MS = 2400;
-  const DURATION_MAX_MS = 3600;
+  const MIN_TURNS = 10;
+  const MAX_TURNS = 16;
+  const DURATION_MIN_MS = 2600;
+  const DURATION_MAX_MS = 4100;
 
   // DOM
   const track = document.getElementById("track");
   const viewport = document.getElementById("viewport");
   const resultText = document.getElementById("resultText");
-  const statusText = document.getElementById("statusText");
   const spinBtn = document.getElementById("spinBtn");
 
   let isSpinning = false;
@@ -374,8 +353,6 @@
     return;
   }
 
-  function setStatus(msg){ statusText.textContent = msg; }
-
   function cryptoRand(){
     if (window.crypto && crypto.getRandomValues){
       const x = new Uint32Array(1);
@@ -385,11 +362,19 @@
     return Math.random();
   }
 
-  // Weighted pick among ITEMS
+  function normMod(x, m){
+    return ((x % m) + m) % m;
+  }
+
+  // Weighted pick among ITEMS (weight=0 => never)
   function pickWeightedIndex() {
     const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
     const total = weights.reduce((a,b) => a + b, 0);
-    if (total <= 0) return Math.floor(cryptoRand() * baseN);
+
+    if (total <= 0) {
+      // fallback: uniform (only if all are 0)
+      return Math.floor(cryptoRand() * baseN);
+    }
 
     let r = cryptoRand() * total;
     for (let i = 0; i < weights.length; i++) {
@@ -399,7 +384,7 @@
     return baseN - 1;
   }
 
-  // Render 3 cycles so we can "wrap" forever (periodic BC)
+  // Render 3 cycles for periodic reel (A..N | A..N | A..N)
   function renderTrack3Cycles(){
     track.innerHTML = "";
     for (let cycle = 0; cycle < 3; cycle++){
@@ -422,18 +407,12 @@
     return Math.floor(h / 2 - ITEM_HEIGHT / 2);
   }
 
-  // We keep a continuous "position" measured in items (can be fractional),
-  // but visually we display it modulo baseN inside the middle cycle.
-  // currentPos is always reduced mod baseN after each spin.
-  let currentPos = 0;
-
-  function normMod(x, m){
-    return ((x % m) + m) % m;
-  }
+  // Map a (possibly large) position to translateY by keeping visible items in middle cycle
+  let currentPos = 0; // measured in "items" (can be fractional during animation)
 
   function posToY(pos){
-    const p = normMod(pos, baseN);      // 0..baseN
-    const displayIndex = p + baseN;     // middle cycle
+    const p = normMod(pos, baseN);
+    const displayIndex = p + baseN; // middle cycle
     return -displayIndex * STEP + centerOffsetPx();
   }
 
@@ -444,26 +423,33 @@
   // init
   applyPos(currentPos);
 
-  // Resize safety (mobile rotate)
   window.addEventListener("resize", () => {
     if (!isSpinning) applyPos(currentPos);
   });
 
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  // More realistic “spindown” easing: fast -> medium -> very slow near the end.
+  function easeSpindown(t){
+    // t in [0,1]
+    // combine a quick start and an extended slow finish
+    // This shape keeps it moving longer near the end than a simple cubic.
+    const a = 1 - Math.pow(1 - t, 2.2);      // fast early
+    const b = 1 - Math.pow(1 - t, 5.5);      // slower approach
+    // blend: more weight on b near the end
+    const w = t * t;
+    return a * (1 - w) + b * w;
+  }
 
   function spin(){
     if (isSpinning) return;
     isSpinning = true;
     spinBtn.disabled = true;
-    setStatus("Dreht…");
 
     const targetIndex = pickWeightedIndex();
     const targetText = ITEMS[targetIndex].text;
 
-    // How far from currentPos(mod N) to land exactly on targetIndex?
     const curMod = normMod(currentPos, baseN);
     let deltaToTarget = targetIndex - curMod;
-    deltaToTarget = normMod(deltaToTarget, baseN); // 0..N-1
+    deltaToTarget = normMod(deltaToTarget, baseN);
 
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
     const totalDelta = turns * baseN + deltaToTarget;
@@ -477,17 +463,16 @@
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        currentPos = normMod(endPos, baseN); // reduce -> periodic
+        currentPos = normMod(endPos, baseN); // periodic reset, visually seamless
         applyPos(currentPos);
 
         resultText.textContent = targetText;
-        setStatus("Fertig.");
         isSpinning = false;
         spinBtn.disabled = false;
         return;
       }
 
-      const e = easeOutCubic(t);
+      const e = easeSpindown(t);
       const pos = startPos + totalDelta * e;
       applyPos(pos);
       requestAnimationFrame(frame);
