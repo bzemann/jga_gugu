@@ -439,48 +439,58 @@
     return a * (1 - w) + b * w;
   }
 
+
+  // currentPos ist im Ruhezustand IMMER ein Integer (Index in [0..N-1])
+  let currentPos = 0;
+  
   function spin(){
     if (isSpinning) return;
     isSpinning = true;
     spinBtn.disabled = true;
-
+  
     const targetIndex = pickWeightedIndex();
     const targetText = ITEMS[targetIndex].text;
-
-    const curMod = normMod(currentPos, baseN);
-    let deltaToTarget = targetIndex - curMod;
-    deltaToTarget = normMod(deltaToTarget, baseN);
-
+  
+    // Start immer auf Integer "einrasten"
+    const startPosInt = Math.round(currentPos);
+    const curMod = normMod(startPosInt, baseN);
+  
+    // Wieviele Schritte bis zum target (0..N-1), als Integer!
+    const deltaToTarget = normMod(targetIndex - curMod, baseN);
+  
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
-    const totalDelta = turns * baseN + deltaToTarget;
-
-    const startPos = currentPos;
-    const endPos = startPos + totalDelta;
-
+    const totalDeltaInt = turns * baseN + deltaToTarget;   // INTEGER
+  
+    const startPos = startPosInt;                          // INTEGER
+    const endPos = startPosInt + totalDeltaInt;            // INTEGER
+  
     const duration = DURATION_MIN_MS + Math.floor(cryptoRand() * (DURATION_MAX_MS - DURATION_MIN_MS));
     const t0 = performance.now();
-
+  
     function frame(now){
       const t = (now - t0) / duration;
+  
       if (t >= 1){
-        currentPos = normMod(endPos, baseN); // periodic reset, visually seamless
+        // Endposition ist garantiert integer & entspricht targetIndex (mod N)
+        currentPos = normMod(endPos, baseN);  // INTEGER in [0..N-1]
         applyPos(currentPos);
-
+  
         resultText.textContent = targetText;
         isSpinning = false;
         spinBtn.disabled = false;
         return;
       }
-
+  
       const e = easeSpindown(t);
-      const pos = startPos + totalDelta * e;
+  
+      // Während der Animation darf es float sein, aber Start/Ende sind integer
+      const pos = startPos + totalDeltaInt * e;
       applyPos(pos);
       requestAnimationFrame(frame);
     }
-
+  
     requestAnimationFrame(frame);
   }
-
   spinBtn.addEventListener("click", spin);
   viewport.addEventListener("click", () => { if (!isSpinning) spin(); });
 })();
