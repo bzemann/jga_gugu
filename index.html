@@ -95,7 +95,6 @@
       min-height: 340px;
     }
 
-    /* Side “lights” like casino vibe (subtle) */
     .side{
       position: relative;
       background: rgba(0,0,0,0.10);
@@ -123,7 +122,6 @@
       box-shadow: 0 6px 14px rgba(0,0,0,0.35);
     }
 
-    /* The reel viewport */
     .viewport{
       position: relative;
       overflow: hidden;
@@ -135,7 +133,6 @@
         radial-gradient(100% 120% at 50% 40%, rgba(255,255,255,0.08), transparent 60%);
     }
 
-    /* Highlight window in the middle */
     .window{
       position:absolute;
       left: 14px;
@@ -151,7 +148,6 @@
       z-index: 3;
     }
 
-    /* Middle pointer “brackets” */
     .bracket{
       position:absolute;
       top: 50%;
@@ -168,7 +164,6 @@
     .bracket.left{ left: 10px; }
     .bracket.right{ right: 10px; }
 
-    /* Fade top/bottom */
     .fade{
       position:absolute;
       left: 0; right: 0;
@@ -185,12 +180,11 @@
       background: linear-gradient(0deg, rgba(11,15,23,0.85), transparent);
     }
 
-    /* Track */
     .track{
       position:absolute;
       left: 0; right: 0;
       will-change: transform;
-      padding: 24px 16px; /* gives breathing room */
+      padding: 24px 16px;
       z-index: 1;
     }
 
@@ -219,7 +213,6 @@
       border-radius: 999px;
     }
 
-    /* ===== Result / buttons ===== */
     .result{
       margin-top: 12px;
       padding: 14px;
@@ -354,15 +347,13 @@
     { text: "Schreib 3 Dinge auf, die gut laufen", weight: 1 },
   ];
 
-  // Spin feel (optional)
-  const MIN_TURNS = 10;          // wie viele “Umdrehungen” mindestens
+  // Spin feel
+  const MIN_TURNS = 10;          // mindestens ganze Zyklen
   const MAX_TURNS = 16;          // maximal
-  const DURATION_MIN_MS = 2400;  // schneller
-  const DURATION_MAX_MS = 3600;  // langsamer
+  const DURATION_MIN_MS = 2400;
+  const DURATION_MAX_MS = 3600;
 
-  // =========================================================
   // DOM
-  // =========================================================
   const track = document.getElementById("track");
   const viewport = document.getElementById("viewport");
   const resultText = document.getElementById("resultText");
@@ -371,53 +362,16 @@
 
   let isSpinning = false;
 
-  // Each rendered row uses this height (must match CSS .item height)
+  // Must match CSS .item height
   const ITEM_HEIGHT = 84;
+  // divider height is 2px (CSS). Step = item + divider
+  const STEP = ITEM_HEIGHT + 2;
 
-  // Build a long track so it can “spin” a lot without looping artifacts
-  const base = ITEMS.map(x => x.text);
-  if (base.length < 2) {
+  const baseN = ITEMS.length;
+  if (baseN < 2) {
     resultText.textContent = "⚠️ Bitte mindestens 2 Items in ITEMS definieren.";
     spinBtn.disabled = true;
     return;
-  }
-
-  // We repeat the base list many times for a long scroll
-  const REPEATS = 40;
-  const sequence = [];
-  for (let r = 0; r < REPEATS; r++) {
-    for (const it of ITEMS) sequence.push(it.text);
-  }
-
-  // Render sequence
-  function renderTrack() {
-    track.innerHTML = "";
-    for (let i = 0; i < sequence.length; i++) {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.textContent = sequence[i];
-      track.appendChild(div);
-
-      // subtle divider between rows (optional)
-      const hr = document.createElement("div");
-      hr.className = "divider";
-      track.appendChild(hr);
-    }
-  }
-
-  // We added dividers, so effective step height is item + divider
-  // divider height is 2px + margins (0), but we used margins; keep it consistent:
-  // In CSS .divider height = 2, margin left/right only.
-  // So each step = ITEM_HEIGHT + 2
-  const STEP = ITEM_HEIGHT + 2;
-
-  renderTrack();
-
-  // Center alignment:
-  // We want the target item to end exactly in the middle window.
-  function centerOffsetPx() {
-    const h = viewport.clientHeight;
-    return Math.floor(h / 2 - ITEM_HEIGHT / 2);
   }
 
   function setStatus(msg){ statusText.textContent = msg; }
@@ -431,34 +385,71 @@
     return Math.random();
   }
 
-  // Weighted pick among base ITEMS
+  // Weighted pick among ITEMS
   function pickWeightedIndex() {
     const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
     const total = weights.reduce((a,b) => a + b, 0);
-    if (total <= 0) return Math.floor(cryptoRand() * ITEMS.length);
+    if (total <= 0) return Math.floor(cryptoRand() * baseN);
 
     let r = cryptoRand() * total;
     for (let i = 0; i < weights.length; i++) {
       r -= weights[i];
       if (r <= 0) return i;
     }
-    return weights.length - 1;
+    return baseN - 1;
   }
 
-  // Animation
+  // Render 3 cycles so we can "wrap" forever (periodic BC)
+  function renderTrack3Cycles(){
+    track.innerHTML = "";
+    for (let cycle = 0; cycle < 3; cycle++){
+      for (let i = 0; i < baseN; i++){
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = ITEMS[i].text;
+        track.appendChild(div);
+
+        const hr = document.createElement("div");
+        hr.className = "divider";
+        track.appendChild(hr);
+      }
+    }
+  }
+  renderTrack3Cycles();
+
+  function centerOffsetPx() {
+    const h = viewport.clientHeight;
+    return Math.floor(h / 2 - ITEM_HEIGHT / 2);
+  }
+
+  // We keep a continuous "position" measured in items (can be fractional),
+  // but visually we display it modulo baseN inside the middle cycle.
+  // currentPos is always reduced mod baseN after each spin.
+  let currentPos = 0;
+
+  function normMod(x, m){
+    return ((x % m) + m) % m;
+  }
+
+  function posToY(pos){
+    const p = normMod(pos, baseN);      // 0..baseN
+    const displayIndex = p + baseN;     // middle cycle
+    return -displayIndex * STEP + centerOffsetPx();
+  }
+
+  function applyPos(pos){
+    track.style.transform = `translateY(${posToY(pos)}px)`;
+  }
+
+  // init
+  applyPos(currentPos);
+
+  // Resize safety (mobile rotate)
+  window.addEventListener("resize", () => {
+    if (!isSpinning) applyPos(currentPos);
+  });
+
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-
-  // Current translateY of track
-  let currentY = 0;
-
-  // Initialize track so it starts somewhere in the middle
-  function initPosition() {
-    // Put “somewhere” so we have room above/below
-    const startIndex = Math.floor(sequence.length * 0.25);
-    currentY = -startIndex * STEP + centerOffsetPx();
-    track.style.transform = `translateY(${currentY}px)`;
-  }
-  initPosition();
 
   function spin(){
     if (isSpinning) return;
@@ -466,33 +457,19 @@
     spinBtn.disabled = true;
     setStatus("Dreht…");
 
-    // Choose weighted target from base list
-    const targetBaseIndex = pickWeightedIndex();
-    const targetText = ITEMS[targetBaseIndex].text;
+    const targetIndex = pickWeightedIndex();
+    const targetText = ITEMS[targetIndex].text;
 
-    // Choose a final absolute index near the end, with enough “turns”
+    // How far from currentPos(mod N) to land exactly on targetIndex?
+    const curMod = normMod(currentPos, baseN);
+    let deltaToTarget = targetIndex - curMod;
+    deltaToTarget = normMod(deltaToTarget, baseN); // 0..N-1
+
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
-    const baseN = ITEMS.length;
+    const totalDelta = turns * baseN + deltaToTarget;
 
-    // We want a target index far “below” current view.
-    // Compute an approximate current absolute index from currentY:
-    const approxIndex = Math.max(0, Math.floor((-currentY + centerOffsetPx()) / STEP));
-
-    // Add turns * baseN plus the targetBaseIndex alignment
-    let targetAbsIndex = approxIndex + turns * baseN + targetBaseIndex;
-
-    // Keep within sequence length - a safety margin
-    const maxIndex = baseN * REPEATS - 5;
-    if (targetAbsIndex > maxIndex) {
-      // If too far, wrap it back but keep “long spin” feel
-      targetAbsIndex = (baseN * Math.floor(REPEATS * 0.6)) + targetBaseIndex;
-    }
-
-    // Compute finalY so that target item is centered
-    const finalY = -targetAbsIndex * STEP + centerOffsetPx();
-
-    const startY = currentY;
-    const delta = finalY - startY;
+    const startPos = currentPos;
+    const endPos = startPos + totalDelta;
 
     const duration = DURATION_MIN_MS + Math.floor(cryptoRand() * (DURATION_MAX_MS - DURATION_MIN_MS));
     const t0 = performance.now();
@@ -500,8 +477,8 @@
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        currentY = finalY;
-        track.style.transform = `translateY(${currentY}px)`;
+        currentPos = normMod(endPos, baseN); // reduce -> periodic
+        applyPos(currentPos);
 
         resultText.textContent = targetText;
         setStatus("Fertig.");
@@ -511,8 +488,8 @@
       }
 
       const e = easeOutCubic(t);
-      currentY = startY + delta * e;
-      track.style.transform = `translateY(${currentY}px)`;
+      const pos = startPos + totalDelta * e;
+      applyPos(pos);
       requestAnimationFrame(frame);
     }
 
@@ -520,11 +497,7 @@
   }
 
   spinBtn.addEventListener("click", spin);
-
-  // Tap on viewport to spin (nice on mobile)
-  viewport.addEventListener("click", () => {
-    if (!isSpinning) spin();
-  });
+  viewport.addEventListener("click", () => { if (!isSpinning) spin(); });
 })();
 </script>
 </body>
