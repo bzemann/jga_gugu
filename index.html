@@ -631,67 +631,72 @@
 
   function spin(){
     if (isSpinning) return;
-
+  
     if (visibleItems.length < 1){
       resultText.textContent = "Keine Items vorhanden.";
       spinBtn.disabled = true;
       return;
     }
-
+  
     const pickedIndex = pickWeightedVisibleIndex(visibleItems);
     if (pickedIndex < 0){
       resultText.textContent = "Keine wählbaren Items mehr (alle weight=0).";
       return;
     }
-
+  
     isSpinning = true;
     spinBtn.disabled = true;
-
-    const targetItem = visibleItems[pickedIndex];
+  
     const n = visibleItems.length;
-
+  
+    // ✅ Hardcoded offset
+    const DISPLAY_OFFSET = 1;
+    const shownIndex = (pickedIndex + DISPLAY_OFFSET + n) % n;
+  
+    const targetItem = visibleItems[shownIndex];
+  
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, n);
-
-    const deltaToTarget = normMod(pickedIndex - curMod, n);
+  
+    // ✅ Ziel auf shownIndex, damit Fenster UND Ergebnis zusammenpassen
+    const deltaToTarget = normMod(shownIndex - curMod, n);
+  
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
     const totalDeltaInt = turns * n + deltaToTarget;
-
+  
     const startPos = startPosInt;
     const endPos = startPosInt + totalDeltaInt;
-
+  
     const duration = DURATION_MIN_MS + Math.floor(cryptoRand() * (DURATION_MAX_MS - DURATION_MIN_MS));
     const t0 = performance.now();
-
+  
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
         currentPos = normMod(endPos, n);
         applyPos(currentPos);
-
+  
         // decrement if finite
         if (targetItem.count !== Infinity){
           targetItem.count = Math.max(0, targetItem.count - 1);
           lockIfDepleted(targetItem);
           persistAll();
         }
-
+  
         setResult(targetItem);
-
-        // UI refresh (titles may stay, but this keeps everything consistent)
         refreshUI();
-
+  
         isSpinning = false;
         spinBtn.disabled = false;
         return;
       }
-
+  
       const e = easeSpindown(t);
       const pos = startPos + totalDeltaInt * e;
       applyPos(pos);
       requestAnimationFrame(frame);
     }
-
+  
     requestAnimationFrame(frame);
   }
 
