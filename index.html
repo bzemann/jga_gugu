@@ -987,6 +987,26 @@
     }
   }
 
+  
+  function getCenteredIndexFromTransform(){
+    const n = visibleItems.length;
+    if (n <= 0) return 0;
+  
+    const tr = track.style.transform || "";
+    // transform: translate3d(0, Ypx, 0)
+    const m = tr.match(/translate3d\(\s*0\s*,\s*([-0-9.]+)px/i);
+    const y = m ? parseFloat(m[1]) : 0;
+  
+    // aus posToY: y = -displayIndex*STEP + centerOffset
+    // => displayIndex = (centerOffset - y)/STEP
+    const displayIndex = Math.round((centerOffsetPx() - y) / STEP);
+  
+    // du renderst 3 Zyklen, wir wollen den mittleren Zyklus:
+    // displayIndex = p + n  =>  p = displayIndex - n
+    const p = normMod(displayIndex - n, n);
+    return p;
+  }
+
   function spin(){
     if (isSpinning) return;
   
@@ -1048,9 +1068,9 @@
         currentPos = normMod(endPos, n);
         applyPos(currentPos);
       
-        const stoppedIndex = normMod(currentPos, n);
-        const stoppedItem = visibleItems[stoppedIndex];
-      
+        const stoppedIndex = getCenteredIndexFromTransform();
+        const stoppedItem = visibleItems[stoppedIndex];      
+
         if (stoppedItem.count !== Infinity){
           stoppedItem.count = Math.max(0, stoppedItem.count - 1);
           lockIfDepleted(stoppedItem);
