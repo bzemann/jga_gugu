@@ -650,8 +650,7 @@
     const n = visibleItems.length;
   
     // ✅ Hardcoded offset
-    const DISPLAY_OFFSET = -1;
-    const shownIndex = (pickedIndex + DISPLAY_OFFSET + n) % n;
+    const shownIndex = (pickedIndex - 1 + n) % n;
   
     const targetItem = visibleItems[shownIndex];
   
