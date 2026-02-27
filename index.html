@@ -721,13 +721,22 @@
 
   // ===== Reset logic =====
   function doReset(){
-    if (isSpinning) return;
+    // Reset soll IMMER wieder spielbar machen
+    isSpinning = false;
+  
     // reset to initial blueprint
     allItems = INITIAL.map(it => ({...it}));
+  
     // clear persisted state
     try{ localStorage.removeItem(LS_KEY); } catch {}
+  
+    // reset reel position + UI
     currentPos = 0;
     resultText.textContent = "—";
+  
+    // IMPORTANT: re-enable spinning
+    spinBtn.disabled = false;
+  
     refreshUI();
   }
 
