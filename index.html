@@ -965,18 +965,25 @@
   }
 
   function refreshUI(){
+    // visibleItems bleibt einfach allItems (du entfernst keine Items)
     visibleItems = getVisibleItems();
-    renderTrack3Cycles();
+  
     if (visibleItems.length === 0){
       spinBtn.disabled = true;
       resultText.textContent = "Keine Items vorhanden.";
       return;
     }
+  
     currentPos = normMod(currentPos, visibleItems.length);
     applyPos(currentPos);
-    requestAnimationFrame(calibrateOffset);
+  
+    // optional (nicht zwingend wenn wir Offset pro Spin neu bestimmen)
+    // requestAnimationFrame(() => requestAnimationFrame(calibrateOffset));
   }
 
+  visibleItems = getVisibleItems();
+  renderTrack3Cycles();
+  applyPos(currentPos);
   refreshUI();
 
   function lockIfDepleted(it){
@@ -988,8 +995,6 @@
     }
   }
 
-  let CAL_OFFSET = 0;
-  
   function getCenteredIndexByDOM(){
     const n = visibleItems.length;
     if (n <= 0) return 0;
@@ -1000,14 +1005,10 @@
     const els = track.querySelectorAll(".item");
     if (!els.length) return 0;
   
-    // nur mittlerer Zyklus (schneller + stabil)
-    const start = n;
-    const end   = 2 * n;
-  
-    let bestIdx = start;
+    let bestIdx = 0;
     let bestDist = Infinity;
   
-    for (let i = start; i < end && i < els.length; i++){
+    for (let i = 0; i < els.length; i++){
       const r = els[i].getBoundingClientRect();
       const c = r.top + r.height / 2;
       const d = Math.abs(c - centerY);
@@ -1017,17 +1018,9 @@
       }
     }
   
-    return bestIdx - start; // zurück auf 0..n-1
-  }
+    return bestIdx % n;
+  } 
   
-  function calibrateOffset(){
-    const n = visibleItems.length;
-    if (n <= 0) { CAL_OFFSET = 0; return; }
-  
-    const optIndex = getCenteredIndexByDOM();
-    CAL_OFFSET = normMod(optIndex - normMod(currentPos, n), n);
-  }
-
   function spin(){
     if (isSpinning) return;
   
@@ -1063,7 +1056,17 @@
   
   
     // 2) Stop-Index so berechnen, dass im Ergebnis (mit Offset) das chosenShownIndex rauskommt
-    const stopIndex = normMod(chosenShownIndex - CAL_OFFSET, n);  
+    // Live messen: welches Item ist gerade optisch im Fenster?
+    const optIndexNow = getCenteredIndexByDOM();
+    
+    // Unser Modell sagt: currentPos (gerundet) ist der "Index-Stand"
+    const curModNow = normMod(Math.round(currentPos), n);
+    
+    // Offset-now: wie weit ist Optik gegenüber Modell verschoben?
+    const offsetNow = normMod(optIndexNow - curModNow, n);
+    
+    // StopIndex so wählen, dass optisch chosenShownIndex im Fenster landet
+    const stopIndex = normMod(chosenShownIndex - offsetNow, n);
     isSpinning = true;
     spinBtn.disabled = true;
   
