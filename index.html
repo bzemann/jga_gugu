@@ -229,17 +229,22 @@
       font-size: 18px;
       line-height: 1.35;
       min-height: 28px;
-      white-space: pre-line; /* allow newline for title + explanation */
+      white-space: pre-line;
     }
-    .result .value .t{
-      font-weight: 900;
-    }
+    .result .value .t{ font-weight: 900; }
     .result .value .d{
       display:block;
       margin-top: 6px;
       color: rgba(255,255,255,0.75);
       font-size: 14px;
       line-height: 1.35;
+      font-weight: 600;
+    }
+    .result .value .m{
+      display:block;
+      margin-top: 8px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
       font-weight: 600;
     }
 
@@ -302,7 +307,6 @@
 </head>
 
 <body>
-  <!-- Fullscreen toggle -->
   <button id="fsBtn" title="Fullscreen" aria-label="Fullscreen umschalten">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"></path>
@@ -312,7 +316,7 @@
   <div class="wrap">
     <div class="header">
       <h1>🎰 Glücksrolle</h1>
-      <p>Drücken, drehen, stoppen – der getroffene Satz erscheint unten.</p>
+      <p>Drücken, drehen, stoppen – der gezogene Satz erscheint unten.</p>
     </div>
 
     <div class="card">
@@ -362,17 +366,24 @@
 <script>
 (() => {
   // =========================================================
-  // ITEMS: title (in Rolle), desc (nur im Ergebnis), weight (Häufigkeit)
-  // weight=0 => wird nie gewählt, bleibt aber sichtbar in der Rolle
+  // ITEMS:
+  // - title: sichtbar in der Rolle
+  // - desc: nur unten im Ergebnis
+  // - weight: Häufigkeit (0 => NIE gewählt, bleibt aber IMMER in der Rolle)
+  // - count: wie oft noch wählbar (Infinity => unendlich)
+  //   -> Persistiert via localStorage (Variante 3)
   // =========================================================
   const ITEMS = [
-    { title: "Hallo",        desc: "Sag kurz Hallo zu jemandem.",                 weight: 1 },
-    { title: "Guter Tag",    desc: "Erinnere dich an 1 Sache die gut lief heute.", weight: 2 },
-    { title: "Kaffee/Tee",   desc: "Entscheide spontan: Kaffee oder Tee?",        weight: 1 },
-    { title: "10 Push-ups",  desc: "Mach 10 Liegestütze.",                        weight: 1 },
-    { title: "Anruf",        desc: "Ruf eine Person an, die du magst.",            weight: 1 },
-    { title: "Spaziergang",  desc: "5 Minuten rausgehen und bewegen.",            weight: 1 },
-    { title: "3 Dinge",      desc: "Schreib 3 Dinge auf, die gut laufen.",        weight: 1 },
+    { id: "hello",      title: "Hallo",       desc: "Sag kurz Hallo zu jemandem.",                  weight: 1, count: 3 },
+    { id: "goodday",    title: "Guter Tag",   desc: "Erinnere dich an 1 Sache die gut lief heute.", weight: 2, count: 2 },
+    { id: "coffee",     title: "Kaffee/Tee",  desc: "Entscheide spontan: Kaffee oder Tee?",         weight: 1, count: 5 },
+    { id: "pushups",    title: "10 Push-ups", desc: "Mach 10 Liegestütze.",                         weight: 1, count: 1 },
+    { id: "call",       title: "Anruf",       desc: "Ruf eine Person an, die du magst.",            weight: 1, count: 2 },
+    { id: "walk",       title: "Spaziergang", desc: "5 Minuten rausgehen und bewegen.",            weight: 1, count: 4 },
+
+    // Beispiel für weight=0:
+    // -> erscheint immer in der Rolle, kann aber NIE gezogen werden.
+    { id: "locked",     title: "Nur Anzeige", desc: "Dieses Item hat weight=0 und wird nie gewählt.", weight: 0, count: Infinity },
   ];
 
   // langsamer drehen
@@ -380,6 +391,8 @@
   const MAX_TURNS = 12;
   const DURATION_MIN_MS = 5200;
   const DURATION_MAX_MS = 7600;
+
+  const LS_KEY = "gluecksrolle_counts_v1";
 
   const track = document.getElementById("track");
   const viewport = document.getElementById("viewport");
@@ -391,13 +404,6 @@
   const ITEM_HEIGHT = 84;
   const STEP = ITEM_HEIGHT;
 
-  const baseN = ITEMS.length;
-  if (baseN < 2) {
-    resultText.textContent = "⚠️ Bitte mindestens 2 Items in ITEMS definieren.";
-    spinBtn.disabled = true;
-    return;
-  }
-
   function cryptoRand(){
     if (window.crypto && crypto.getRandomValues){
       const x = new Uint32Array(1);
@@ -406,69 +412,7 @@
     }
     return Math.random();
   }
-
-  function normMod(x, m){
-    return ((x % m) + m) % m;
-  }
-
-  function pickWeightedIndex() {
-    const weights = ITEMS.map(it => Math.max(0, Number(it.weight) || 0));
-    const total = weights.reduce((a,b) => a + b, 0);
-    if (total <= 0) return Math.floor(cryptoRand() * baseN);
-
-    let r = cryptoRand() * total;
-    for (let i = 0; i < weights.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return i;
-    }
-    return baseN - 1;
-  }
-
-  function renderTrack3Cycles(){
-    track.innerHTML = "";
-    for (let cycle = 0; cycle < 3; cycle++){
-      for (let i = 0; i < baseN; i++){
-        const div = document.createElement("div");
-        div.className = "item";
-        div.textContent = ITEMS[i].title;   // ✅ only title on the reel
-        track.appendChild(div);
-      }
-    }
-  }
-  renderTrack3Cycles();
-
-  function centerOffsetPx() {
-    return 2 * ITEM_HEIGHT; // 168px for 420px viewport
-  }
-
-  let currentPos = 0;
-
-  function posToY(pos){
-    const p = normMod(pos, baseN);
-    const displayIndex = p + baseN; // middle cycle
-    return -displayIndex * STEP + centerOffsetPx();
-  }
-
-  function applyPos(pos){
-    track.style.transform = `translate3d(0, ${posToY(pos)}px, 0)`;
-  }
-
-  applyPos(currentPos);
-
-  function easeSpindown(t){
-    const fast = 1 - Math.pow(1 - t, 1.8);
-    const slow = 1 - Math.pow(1 - t, 6.5);
-    const w = t * t;
-    return fast * (1 - w) + slow * w;
-  }
-
-  function setResult(item){
-    // title + desc below
-    const title = item.title ?? "";
-    const desc  = item.desc ?? "";
-    resultText.innerHTML = `<span class="t">${escapeHtml(title)}</span>` +
-                           (desc ? `<span class="d">${escapeHtml(desc)}</span>` : "");
-  }
+  function normMod(x, m){ return ((x % m) + m) % m; }
 
   function escapeHtml(s){
     return String(s)
@@ -479,23 +423,191 @@
       .replaceAll("'", "&#039;");
   }
 
+  // ---------- persistent counts ----------
+  function loadCounts(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return {};
+      const obj = JSON.parse(raw);
+      return (obj && typeof obj === "object") ? obj : {};
+    } catch {
+      return {};
+    }
+  }
+  function saveCounts(countMap){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify(countMap));
+    } catch {}
+  }
+
+  // Initialize live items with persisted counts
+  const saved = loadCounts();
+  let allItems = ITEMS.map(it => {
+    const baseCount = (it.count ?? Infinity);
+    const persisted = (it.id && saved[it.id] != null) ? saved[it.id] : undefined;
+
+    // If baseCount is Infinity, we keep it Infinity (no need to persist).
+    // If baseCount finite: use persisted if available, else baseCount.
+    const count = (baseCount === Infinity)
+      ? Infinity
+      : Math.max(0, Number(persisted ?? baseCount) || 0);
+
+    return {
+      id: it.id ?? cryptoRand().toString(16).slice(2),
+      title: String(it.title ?? ""),
+      desc: String(it.desc ?? ""),
+      weight: Math.max(0, Number(it.weight) || 0),
+      baseCount,
+      count
+    };
+  });
+
+  // Visible items:
+  // - always show weight==0 items (even though never selectable)
+  // - show weight>0 items only if count>0
+  function computeVisibleItems(){
+    return allItems.filter(it => it.weight === 0 || it.count > 0);
+  }
+
+  // Persist only finite counts
+  function persistFiniteCounts(){
+    const map = {};
+    for (const it of allItems){
+      if (it.baseCount !== Infinity) map[it.id] = it.count;
+    }
+    saveCounts(map);
+  }
+
+  function setResult(item){
+    const title = item.title ?? "";
+    const desc  = item.desc ?? "";
+    const meta =
+      item.baseCount === Infinity
+        ? "∞ übrig"
+        : `${item.count} übrig`;
+
+    resultText.innerHTML =
+      `<span class="t">${escapeHtml(title)}</span>` +
+      (desc ? `<span class="d">${escapeHtml(desc)}</span>` : "") +
+      `<span class="m">${escapeHtml(meta)}</span>`;
+  }
+
+  function centerOffsetPx(){
+    // with 420px viewport and 84px item height => offset 168px
+    return 2 * ITEM_HEIGHT;
+  }
+
+  // Reel position (integer at rest)
+  let currentPos = 0;
+
+  // render / apply based on current visible list
+  let visibleItems = computeVisibleItems();
+
+  function renderTrack3Cycles(){
+    track.innerHTML = "";
+    for (let cycle = 0; cycle < 3; cycle++){
+      for (const it of visibleItems){
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = it.title; // only title on reel
+        track.appendChild(div);
+      }
+    }
+  }
+
+  function posToY(pos){
+    const n = visibleItems.length;
+    const p = normMod(pos, n);
+    const displayIndex = p + n; // middle cycle
+    return -displayIndex * STEP + centerOffsetPx();
+  }
+  function applyPos(pos){
+    track.style.transform = `translate3d(0, ${posToY(pos)}px, 0)`;
+  }
+
+  function easeSpindown(t){
+    const fast = 1 - Math.pow(1 - t, 1.8);
+    const slow = 1 - Math.pow(1 - t, 6.5);
+    const w = t * t;
+    return fast * (1 - w) + slow * w;
+  }
+
+  // Weighted pick among VISIBLE items, with rules:
+  // - selectable only if weight>0 AND count>0
+  // - weight==0 => always visible, never selected
+  function pickWeightedVisibleIndex(){
+    const n = visibleItems.length;
+    if (n <= 0) return -1;
+
+    const weights = visibleItems.map(it => {
+      if (it.weight <= 0) return 0;    // never selectable
+      if (!(it.count > 0)) return 0;   // depleted
+      return it.weight;
+    });
+
+    const total = weights.reduce((a,b) => a + b, 0);
+    if (total <= 0) return -1;
+
+    let r = cryptoRand() * total;
+    for (let i = 0; i < weights.length; i++){
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    return n - 1;
+  }
+
+  function refreshVisible(keepCurrent=true){
+    visibleItems = computeVisibleItems();
+    renderTrack3Cycles();
+
+    if (visibleItems.length === 0){
+      // nothing to show
+      track.innerHTML = "";
+      spinBtn.disabled = true;
+      resultText.textContent = "Keine Items mehr übrig.";
+      return;
+    }
+
+    if (keepCurrent){
+      currentPos = normMod(currentPos, visibleItems.length);
+    } else {
+      currentPos = 0;
+    }
+    applyPos(currentPos);
+  }
+
+  // initial render
+  refreshVisible(true);
+
   function spin(){
     if (isSpinning) return;
+
+    if (visibleItems.length < 1){
+      resultText.textContent = "Keine Items mehr übrig.";
+      spinBtn.disabled = true;
+      return;
+    }
+
+    const pickedVisibleIndex = pickWeightedVisibleIndex();
+    if (pickedVisibleIndex < 0){
+      // Means only weight==0 items remain OR all weighted are depleted.
+      resultText.textContent = "Keine wählbaren Items mehr (nur weight=0 oder count=0).";
+      return;
+    }
+
     isSpinning = true;
     spinBtn.disabled = true;
 
-    const targetIndex = pickWeightedIndex();
+    const targetItem = visibleItems[pickedVisibleIndex];
 
-    // Hardcoded +1 output offset (as in your current setup)
-    const shownIndex = (targetIndex + 1) % baseN;
-    const targetItem = ITEMS[shownIndex];
+    const n = visibleItems.length;
 
     const startPosInt = Math.round(currentPos);
-    const curMod = normMod(startPosInt, baseN);
+    const curMod = normMod(startPosInt, n);
 
-    const deltaToTarget = normMod(targetIndex - curMod, baseN);
+    const deltaToTarget = normMod(pickedVisibleIndex - curMod, n);
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
-    const totalDeltaInt = turns * baseN + deltaToTarget;
+    const totalDeltaInt = turns * n + deltaToTarget;
 
     const startPos = startPosInt;
     const endPos = startPosInt + totalDeltaInt;
@@ -506,10 +618,21 @@
     function frame(now){
       const t = (now - t0) / duration;
       if (t >= 1){
-        currentPos = normMod(endPos, baseN);
+        currentPos = normMod(endPos, n);
         applyPos(currentPos);
 
+        // decrement count for the actually selected item (if finite)
+        if (targetItem.baseCount !== Infinity && targetItem.count > 0){
+          targetItem.count = Math.max(0, targetItem.count - 1);
+          persistFiniteCounts();
+        }
+
         setResult(targetItem);
+
+        // After selection, update visibility (depleted weight>0 disappear; weight==0 stays)
+        // keep currentPos snapped in new list
+        refreshVisible(true);
+
         isSpinning = false;
         spinBtn.disabled = false;
         return;
@@ -530,9 +653,7 @@
   // ===== Fullscreen toggle =====
   const fsBtn = document.getElementById("fsBtn");
 
-  function inFullscreen(){
-    return !!document.fullscreenElement;
-  }
+  function inFullscreen(){ return !!document.fullscreenElement; }
 
   async function toggleFullscreen(){
     try{
