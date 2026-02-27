@@ -427,18 +427,376 @@
   // - count und weight können persistiert werden (wenn "locked")
   // - Reset setzt alles zurück auf initiale Werte.
   // =========================================================
+
   const ITEMS = [
-    { id: "hello",   title: "Hallo",       desc: "Sag kurz Hallo zu jemandem.",                  weight: 1, count: 3 },
-    { id: "goodday", title: "Guter Tag",   desc: "Erinnere dich an 1 Sache die gut lief heute.", weight: 2, count: 2 },
-    { id: "coffee",  title: "Kaffee/Tee",  desc: "Entscheide spontan: Kaffee oder Tee?",         weight: 1, count: 5 },
-    { id: "pushups", title: "10 Push-ups", desc: "Mach 10 Liegestütze.",                         weight: 1, count: 1 },
-    { id: "call",    title: "Anruf",       desc: "Ruf eine Person an, die du magst.",            weight: 1, count: 2 },
-    { id: "walk",    title: "Spaziergang", desc: "5 Minuten rausgehen und bewegen.",            weight: 1, count: 4 },
-
-    // Beispiel für von Anfang an "nur sichtbar"
-    { id: "locked0", title: "Nur Anzeige", desc: "weight=0: erscheint, wird nie gewählt.",       weight: 0, count: Infinity },
-  ];
-
+    // ===== Locked Items (sichtbar, nie wählbar) =====
+    {
+      id: "locked_stripclub_kondom",
+      title: "Gehe in den nächsten Stripclub und frage nach einem Kondom.",
+      desc: "weight=0: erscheint, wird nie gewählt.",
+      weight: 0,
+      count: Infinity
+    },
+    {
+      id: "locked_selfie_ort",
+      title: "Geh in en Puff und mach ein Selfie",
+      desc: "weight=0: erscheint, wird nie gewählt.",
+      weight: 0,
+      count: Infinity
+    },
+    {
+      id: "locked_giulio_spitzname",
+      title: "Giulio, der Nuttenbeglücker",
+      desc: "weight=0: erscheint, wird nie gewählt.",
+      weight: 0,
+      count: Infinity
+    },
+    {
+      id: "locked_zug_durchsage",
+      title: "Sprich eine Durchsage im Zug.",
+      desc: "weight=0: erscheint, wird nie gewählt.",
+      weight: 0,
+      count: Infinity
+    },
+    //solo items
+    {
+      id: "locked_borat_outfit",
+      title: "Lauf ab jetzt mit einem Borat Badeanzug rum",
+      desc: "weight=0: erscheint, wird nie gewählt.",
+      weight: 0,
+      count: Infinity
+    },
+    {
+      id: "muse_der_stunde",
+      title: "Muse der Stunde",
+      desc: "Finde in 10 Minuten einen Gegenstand, der sich auf Zwiebel reimt, und mach ein Selfie damit.",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "parkour",
+      title: "Parkouuur!!",
+      desc: "Renn herum und schrei „Parkour“ und mach mindestens 3 Hindernisse.",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "aussicht_foto",
+      title: "Aussicht für den Arsch",
+      desc: "Finde in 10 Minuten den schönsten Aussichtspunkt und mach ein Foto. Zeig deinen Hintern weg von der Kamera. Wähle jemanden, der mit dir mitmachen muss",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "double_or_nothing",
+      title: "Double or Nothing",
+      desc: "Trink einen Shot. Wenn du mehr trinkst, darfst du doppelte Anzahl verteilen",
+      weight: 1,
+      count: 2
+    },
+    {
+      id: "kneipe",
+      title: "Kneippen hält jung",
+      desc: "Such einen Brunnen und geh baden, mindestens 30 sekunden bis mindestens zu den Knien. Wähle einen Kameraden",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "sunday_pennis",
+      title: "Sonntags Pennis",
+      desc: "Male einen grossen Penis vor eine Bank",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "refill",
+      title: "Auffüllen",
+      desc: "Kaufe eine Runde Bier",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "nice_try",
+      title: "Nice Try",
+      desc: "Dreh nochmals, du Homo",
+      weight: 1,
+      count: 4
+    },
+    {
+      id: "chasch_was",
+      title: "Chasch du was?",
+      desc: "Dreh nochmals, du mega Homo",
+      weight: 1,
+      count: 4
+    },
+    {
+      id: "planking",
+      title: "Planking",
+      desc: "Mach eine Plank an einem Kreativen Spot. Basil vs. du. Shot für den Loser",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "bosscock",
+      title: "Boss Cock",
+      desc: "Suche einen langen Gegenstand und mache ein Boss Cock selfie",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "heiratsantrag",
+      title: "Heir-ts-ntrg",
+      desc: "Mach ein Video für Cheryl, warum sie dich heiraten soll. Verwende keinen Buchstaben A. Für jedes A gibt es einen Schluck",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "gefängnis_frei_eins",
+      title: "Gefängnis frei karte",
+      desc: "Du kommst aus dem Gefängnis frei und kannst eine Challenge nicht machen.",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "wähle_challange",
+      title: "Giulio wählt eine Challange",
+      desc: "eder setzt, wie viele Schlücke er setzen würde. Der Höchstbietende macht die challenge. Wenn er es schafft, darf er so viele verteilen. Wenn nicht, trinkt er sie selbst. Mach die Challenge schwierig, aber machbar",
+      weight: 1,
+      count: 2
+    },
+    {
+      id: "plock_vs_plank",
+      title: "Pflock vs. Plank",
+      desc: "lank-Duo – ihr haltet gleichzeitig. Der Verlierer trinkt. Giulio wählt seine Konkurrenz",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "giulio_drink",
+      title: "Giulio Drink",
+      desc: "Giulio trinkt einen Schluck und dreht nochmals",
+      weight: 1,
+      count: 6
+    },
+    {
+      id: "dreh_löhri",
+      title: "Du drehst wie ein Löhri",
+      desc: "Dreh besser, du Homo",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "giulio_renn",
+      title: "Giulio Renn",
+      desc: "annik hat Durst, dann wird er motzig. Renn und besorg ihm ein Corona in unter 5 Minuten, sonst gibt’s einen Shot",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "dusche",
+      title: "Bierdusche to go",
+      desc: "Leg ein Bier auf eine Tram-Schiene und schau, was passiert",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "mtv_cribs",
+      title: "MTV Cribs",
+      desc: "Mach ein MTV-Cribs-Video und stell eine Location vor. Du darfst nicht lachen. Jeder Lacher gibt einen Shot",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "shot_or_not",
+      title: "Shot or Not",
+      desc: "Zwei kriegen Wasser, einer einen Shot. Giulio rät, wer es war. Ist Giulio falsch, trinkt er einen Shot",
+      weight: 1,
+      count: 2
+    },
+    {
+      id: "schlag_gugu",
+      title: "Schlag den Gügü",
+      desc: "Giulio fordert eine Person in einer sportlichen Challenge deiner Wahl auf. Der Verlierer trinkt",
+      weight: 1,
+      count: 2
+    },
+    {
+      id: "saeuferhimmel",
+      title: "Säuferhimmel oder Trinkerhölle",
+      desc: "Male Himmel und Hölle auf den Boden bei einer voll belebten Strasse und beobachtet es. Für jeden, der hüpft, wird getrunken",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "auf_giulio",
+      title: "Auf Giulio",
+      desc: "eder trinkt einen Schluck auf Giulios Wohl",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "auf_nacken",
+      title: "Auf Giulios Nacken",
+      desc: " Giulio wollte schon immer zeigen, wie ein guter Moscato schmeckt. Warum nicht heute? Kaufe eine Flasche und teile sie brüderlich",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "npc_modus",
+      title: "NPC-Modus",
+      desc: " Lauf 2 Minuten wie ein NPC durch die Stadt und sag nur 3 vorgegebene Sätze",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "mip",
+      title: "Mission Impossible",
+      desc: " us der nächsten tür die du gehst achst du eine Taktische rolle mit deinem getränk rufe dann Mission erfüllt",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "lost_tourist",
+      title: "Lost Tourist",
+      desc: "Frag mit yannik 5 leute nach dem Weg zu einem Ort, den es nicht gibt ",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "deep_talk",
+      title: "Deep Talk",
+      desc: "Halte 1 Minute eine komplett übertriebene Motivationsrede ",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "google_r",
+      title: "Google Review",
+      desc: "Mach eine 30-Sekunden-Review von einem Ort wie Influencer",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "kuessen_baer",
+      title: "Küsse einen Bären",
+      desc: "Küss chunuk",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "which",
+      title: "Hexen Besen",
+      desc: "Kaufe im nächsten Supermarkt einen Besen laufe damit ruhm",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "shot_time",
+      title: "Shot Time",
+      desc: "Trink einen Shot",
+      weight: 1,
+      count: 3
+    },
+    {
+      id: "gamble_gamble",
+      title: "Gamble Time",
+      desc: "wähl eine zahl von eins bis sechs, würfel einen würfel und wenn die zahl nicht kommt kaufe allen ein bier",
+      weight: 1,
+      count: 1
+    },
+    //group
+    {
+      id: "bier_tasting",
+      title: "Bier Tasting",
+      desc: "Jeder hat max. 5 Fr. Wer findet das beste Bier, macht ein Tasting. Der Verlierer ext den Rest",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "massephase",
+      title: "Massephase Beatches",
+      desc: "Jeder futtert einen Hamburger mit Butter. Der Langsamste trinkt einen Shot",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "snackt_attack",
+      title: "Snack Attacke",
+      desc: "Jeder kauft einen Random-Snack für 3 CHF – der schlechteste wird bestraft",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "kofferpacken",
+      title: "Koffer packen",
+      desc: "Spielt Kofferpacken. Der Verlierer trinkt",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "flanky_ball",
+      title: "Flanky Ball extrem",
+      desc: "pielt Flanky Ball, aber mit einer Zeitbombe, die zufällig explodiert. Bei dem, bei dem es explodiert, ext er sein Bier aus und kriegt ein neues",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "jager",
+      title: "Weihnachten",
+      desc: "Jägerbombe für alle",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "shopping",
+      title: "Shopping Queen",
+      desc: "Der Letzte, der ein Produkt kauft, das mit seinem Vornamen-Anfangsbuchstaben beginnt, trinkt einen Shot",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "lecka_lecka",
+      title: "Lecka Bierchen",
+      desc: "Gönnt euch ein kleines Bier. PS: Ist kein Wettbewerb",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "roullet",
+      title: "Bar Roulette",
+      desc: "Erste Person sagt eine Zahl zwischen 1–10. Ihr geht zur nächsten Bar und bestellt das 10-Zahlen-Produkt von oben",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "schweigen_got",
+      title: "Schweigen ist Gold",
+      desc: "5 Minuten kein Wort reden. Wer spricht → Shot",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "wort_fur_wort",
+      title: "Wort für Wort",
+      desc: "iner sagt ein wort der nächste hat 30 sek um ein wort zu finden das mit dem endbuchstaben vom letzten Wort anfängt. Der erste wo nicht rechtzeitig ein Wort findet trinkt ",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "direkter_weg",
+      title: "Direkter Weg ins Gefängnis",
+      desc: "dreht ne flasche den den es erwischt kriegt die hände verbunden und ein offenes bier drin befestigt die nächsten 20min bleibt das auch",
+      weight: 1,
+      count: 1
+    },
+    {
+      id: "flaschen_drehen",
+      title: "Flaschen Drehen",
+      desc: "Drehe eine Flasche und auf wenn sie zeigt ext ein bier 33cl",
+      weight: 1,
+      count: 1
+    },
+   ];
   // langsamer drehen
   const MIN_TURNS = 8;
   const MAX_TURNS = 12;
