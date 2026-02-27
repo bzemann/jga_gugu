@@ -638,26 +638,44 @@
       return;
     }
   
-    const pickedIndex = pickWeightedVisibleIndex(visibleItems);
-    if (pickedIndex < 0){
-      resultText.textContent = "Keine wählbaren Items mehr (alle weight=0).";
+    const n = visibleItems.length;
+  
+    // Offset nur fürs Ergebnis (wie du es willst)
+    const DISPLAY_OFFSET = 1; // <- falls bei dir "Rad 2 weiter als Ergebnis" dann z.B. 2, falls andersrum negativ
+  
+    // 1) Wir picken das ERGEBNIS-Item (shownIndex) nur aus wählbaren Items
+    const weights = visibleItems.map(it => {
+      if (it.weight <= 0) return 0; // nie wählbar
+      if (it.count !== Infinity && it.count <= 0) return 0;
+      return it.weight;
+    });
+  
+    const total = weights.reduce((a,b) => a + b, 0);
+    if (total <= 0){
+      resultText.textContent = "Spiel vorbei – es sind keine wählbaren Items mehr übrig.";
+      spinBtn.disabled = true;
       return;
     }
+  
+    let r = cryptoRand() * total;
+    let chosenShownIndex = 0;
+    for (let i = 0; i < n; i++){
+      r -= weights[i];
+      if (r <= 0){ chosenShownIndex = i; break; }
+    }
+  
+    const shownItem = visibleItems[chosenShownIndex];
+  
+    // 2) Stop-Index so berechnen, dass im Ergebnis (mit Offset) das chosenShownIndex rauskommt
+    const stopIndex = normMod(chosenShownIndex - DISPLAY_OFFSET, n);
   
     isSpinning = true;
     spinBtn.disabled = true;
   
-    const n = visibleItems.length;
-  
-    // ✅ Offset nur für Ergebnis (wie früher)
-    const DISPLAY_OFFSET = 1; // wenn Rad 1 voraus ist gegenüber Resultat
-    const shownIndex = (pickedIndex + DISPLAY_OFFSET + n) % n;
-    const shownItem = visibleItems[shownIndex];
-  
-    // ✅ Rolle stoppt auf pickedIndex (wie früher)
+    // 3) Rolle stoppt auf stopIndex
     const startPosInt = Math.round(currentPos);
     const curMod = normMod(startPosInt, n);
-    const deltaToTarget = normMod(pickedIndex - curMod, n);
+    const deltaToTarget = normMod(stopIndex - curMod, n);
   
     const turns = MIN_TURNS + Math.floor(cryptoRand() * (MAX_TURNS - MIN_TURNS + 1));
     const totalDeltaInt = turns * n + deltaToTarget;
@@ -674,10 +692,10 @@
         currentPos = normMod(endPos, n);
         applyPos(currentPos);
   
-        // ✅ Counter/Lock/Persistenz auf dem ANGEZEIGTEN Item (shownItem)
+        // 4) Counter/Lock/Persistenz auf dem ERGEBNIS-Item (shownItem)
         if (shownItem.count !== Infinity){
           shownItem.count = Math.max(0, shownItem.count - 1);
-          lockIfDepleted(shownItem);  // setzt count=Infinity & weight=0 bei 0
+          lockIfDepleted(shownItem);   // setzt count=Infinity & weight=0 bei 0
           persistAll();
         }
   
