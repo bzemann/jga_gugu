@@ -987,25 +987,28 @@
     }
   }
 
-  
   function getCenteredIndexFromTransform(){
     const n = visibleItems.length;
     if (n <= 0) return 0;
   
-    const tr = track.style.transform || "";
-    // transform: translate3d(0, Ypx, 0)
-    const m = tr.match(/translate3d\(\s*0\s*,\s*([-0-9.]+)px/i);
-    const y = m ? parseFloat(m[1]) : 0;
+    const tr = getComputedStyle(track).transform;
+    let y = 0;
   
-    // aus posToY: y = -displayIndex*STEP + centerOffset
-    // => displayIndex = (centerOffset - y)/STEP
+    if (tr && tr !== "none") {
+      // Robust: DOMMatrix kann matrix(...) und matrix3d(...)
+      try {
+        const m = new DOMMatrixReadOnly(tr);
+        y = m.m42; // translateY
+      } catch {
+        // Fallback: matrix(a,b,c,d,tx,ty)
+        const m2 = tr.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([-0-9.]+)\s*\)/);
+        if (m2) y = parseFloat(m2[1]);
+      }
+    }
+  
     const displayIndex = Math.round((centerOffsetPx() - y) / STEP);
-  
-    // du renderst 3 Zyklen, wir wollen den mittleren Zyklus:
-    // displayIndex = p + n  =>  p = displayIndex - n
-    const p = normMod(displayIndex - n, n);
-    return p;
-  }
+    return normMod(displayIndex - n, n); // mittlerer Zyklus
+  } 
 
   function spin(){
     if (isSpinning) return;
@@ -1040,7 +1043,6 @@
       if (r <= 0){ chosenShownIndex = i; break; }
     }
   
-    const shownItem = visibleItems[chosenShownIndex];
   
     // 2) Stop-Index so berechnen, dass im Ergebnis (mit Offset) das chosenShownIndex rauskommt
     const stopIndex = chosenShownIndex;
