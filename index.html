@@ -998,8 +998,6 @@
   
     const n = visibleItems.length;
   
-    // Offset nur fürs Ergebnis (wie du es willst)
-    const DISPLAY_OFFSET = 1; // <- falls bei dir "Rad 2 weiter als Ergebnis" dann z.B. 2, falls andersrum negativ
   
     // 1) Wir picken das ERGEBNIS-Item (shownIndex) nur aus wählbaren Items
     const weights = visibleItems.map(it => {
@@ -1025,7 +1023,7 @@
     const shownItem = visibleItems[chosenShownIndex];
   
     // 2) Stop-Index so berechnen, dass im Ergebnis (mit Offset) das chosenShownIndex rauskommt
-    const stopIndex = normMod(chosenShownIndex - DISPLAY_OFFSET, n);
+    const stopIndex = chosenShownIndex;
   
     isSpinning = true;
     spinBtn.disabled = true;
@@ -1049,22 +1047,23 @@
       if (t >= 1){
         currentPos = normMod(endPos, n);
         applyPos(currentPos);
-  
-        // 4) Counter/Lock/Persistenz auf dem ERGEBNIS-Item (shownItem)
-        if (shownItem.count !== Infinity){
-          shownItem.count = Math.max(0, shownItem.count - 1);
-          lockIfDepleted(shownItem);   // setzt count=Infinity & weight=0 bei 0
+      
+        const stoppedIndex = normMod(currentPos, n);
+        const stoppedItem = visibleItems[stoppedIndex];
+      
+        if (stoppedItem.count !== Infinity){
+          stoppedItem.count = Math.max(0, stoppedItem.count - 1);
+          lockIfDepleted(stoppedItem);
           persistAll();
         }
-  
-        setResult(shownItem);
+      
+        setResult(stoppedItem);
         refreshUI();
-  
+      
         isSpinning = false;
         spinBtn.disabled = false;
         return;
-      }
-  
+      }  
       const e = easeSpindown(t);
       const pos = startPos + totalDeltaInt * e;
       applyPos(pos);
