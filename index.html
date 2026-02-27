@@ -974,6 +974,7 @@
     }
     currentPos = normMod(currentPos, visibleItems.length);
     applyPos(currentPos);
+    requestAnimationFrame(calibrateOffset);
   }
 
   refreshUI();
@@ -987,28 +988,45 @@
     }
   }
 
-  function getCenteredIndexFromTransform(){
+  let CAL_OFFSET = 0;
+  
+  function getCenteredIndexByDOM(){
     const n = visibleItems.length;
     if (n <= 0) return 0;
   
-    const tr = getComputedStyle(track).transform;
-    let y = 0;
+    const rectV = viewport.getBoundingClientRect();
+    const centerY = rectV.top + rectV.height / 2;
   
-    if (tr && tr !== "none") {
-      // Robust: DOMMatrix kann matrix(...) und matrix3d(...)
-      try {
-        const m = new DOMMatrixReadOnly(tr);
-        y = m.m42; // translateY
-      } catch {
-        // Fallback: matrix(a,b,c,d,tx,ty)
-        const m2 = tr.match(/matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*([-0-9.]+)\s*\)/);
-        if (m2) y = parseFloat(m2[1]);
+    const els = track.querySelectorAll(".item");
+    if (!els.length) return 0;
+  
+    // nur mittlerer Zyklus (schneller + stabil)
+    const start = n;
+    const end   = 2 * n;
+  
+    let bestIdx = start;
+    let bestDist = Infinity;
+  
+    for (let i = start; i < end && i < els.length; i++){
+      const r = els[i].getBoundingClientRect();
+      const c = r.top + r.height / 2;
+      const d = Math.abs(c - centerY);
+      if (d < bestDist){
+        bestDist = d;
+        bestIdx = i;
       }
     }
   
-    const displayIndex = Math.round((centerOffsetPx() - y) / STEP);
-    return normMod(displayIndex - n, n); // mittlerer Zyklus
-  } 
+    return bestIdx - start; // zurück auf 0..n-1
+  }
+  
+  function calibrateOffset(){
+    const n = visibleItems.length;
+    if (n <= 0) { CAL_OFFSET = 0; return; }
+  
+    const optIndex = getCenteredIndexByDOM();
+    CAL_OFFSET = normMod(optIndex - normMod(currentPos, n), n);
+  }
 
   function spin(){
     if (isSpinning) return;
@@ -1045,8 +1063,7 @@
   
   
     // 2) Stop-Index so berechnen, dass im Ergebnis (mit Offset) das chosenShownIndex rauskommt
-    const stopIndex = chosenShownIndex;
-  
+    const stopIndex = normMod(chosenShownIndex - CAL_OFFSET, n);  
     isSpinning = true;
     spinBtn.disabled = true;
   
@@ -1069,21 +1086,27 @@
       if (t >= 1){
         currentPos = normMod(endPos, n);
         applyPos(currentPos);
-      
-        const stoppedIndex = getCenteredIndexFromTransform();
-        const stoppedItem = visibleItems[stoppedIndex];      
 
-        if (stoppedItem.count !== Infinity){
-          stoppedItem.count = Math.max(0, stoppedItem.count - 1);
-          lockIfDepleted(stoppedItem);
-          persistAll();
-        }
-      
-        setResult(stoppedItem);
-        refreshUI();
-      
-        isSpinning = false;
-        spinBtn.disabled = false;
+        // ✅ Safari: erst nach dem Rendern den echten "zentrierten" Treffer bestimmen
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const stoppedIndex = getCenteredIndexByDOM();
+            const stoppedItem  = visibleItems[stoppedIndex];
+        
+            if (stoppedItem.count !== Infinity){
+              stoppedItem.count = Math.max(0, stoppedItem.count - 1);
+              lockIfDepleted(stoppedItem);
+              persistAll();
+            }
+        
+            setResult(stoppedItem);
+            refreshUI();
+        
+            isSpinning = false;
+            spinBtn.disabled = false;
+          });
+        });
         return;
       }  
       const e = easeSpindown(t);
